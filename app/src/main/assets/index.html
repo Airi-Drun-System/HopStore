@@ -151,7 +151,7 @@ body.na #nav,body.na .fab{display:none!important}
   <h2>Фон</h2><div class="tiles" id="s-bg"></div>
   <h2>Профиль</h2><div id="s-own"></div>
   <h2>Каталог</h2>
-  <button class="btn" id="refresh"></button>
+  <button class="btn" id="refresh"></button><button class="btn" data-help="1">Как пользоваться</button>
   <div class="note">Hangar Vault 1.0 · Hop Hop Studio</div>
 </section>
 
@@ -166,6 +166,7 @@ body.na #nav,body.na .fab{display:none!important}
 <script src="config.js"></script>
 <script>
 var IC={
+image:'<rect x="4" y="5" width="16" height="14" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="M5 17l4.5-4.5 3.5 3.5 2-2 4 4"/>',
 search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
 download:'<path d="M12 4v11"/><path d="M7.5 11l4.5 4.5 4.5-4.5"/><path d="M5 19.5h14"/>',
 spin:'<path d="M12 4a8 8 0 1 0 8 8"/>',
@@ -260,7 +261,7 @@ function openProf(id){
   var u=A[id];if(!u)return;prof=id;closeSheet();
   var l=apps.filter(function(a){return a.author==id});
   var el=document.getElementById('v-prof');
-  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph">'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div>'+(ME.admin?'<div class="chips">'+[['','Без значка']].concat(Object.keys(BD).map(function(k){return[k,BD[k].n]})).map(function(c){return '<button class="chip'+((u.badge||'')==c[0]?' on':'')+'" data-bd="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>':'')+'<h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
+  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph"'+(u.accent?' style="background:'+hsl(+u.accent,55,isDark()?24:88)+';border-radius:28px;margin:8px 16px;padding:20px 8px"':'')+'>'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div>'+(ME.admin?'<div class="chips">'+[['','Без значка']].concat(Object.keys(BD).map(function(k){return[k,BD[k].n]})).map(function(c){return '<button class="chip'+((u.badge||'')==c[0]?' on':'')+'" data-bd="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>':'')+'<h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
   el.classList.add('on');el.scrollTop=0;
 }
 function closeProf(){prof='';document.getElementById('v-prof').classList.remove('on')}
@@ -313,6 +314,10 @@ document.addEventListener('click',function(e){
   var t=e.target,b;
   if(b=t.closest('[data-am]')){amode=b.dataset.am;return drawAuth()}
   if(t.closest('#auth-go'))return doAuth();
+  if(b=t.closest('[data-pac]')){pac=b.dataset.pac;pacSet=true;return drawOwn()}
+  if(b=t.closest('[data-help]'))return openHelp();
+  if(t.closest('#pick-ic'))return Store.pickIcon();
+  if(t.closest('#help-ok'))return closeSheet();
   if(t.closest('#fab'))return openUpload();
   if(b=t.closest('[data-bd]'))return Store.setBadge(prof,b.dataset.bd);
   if(b=t.closest('[data-ed]'))return openUpload(b.dataset.ed);
@@ -333,7 +338,7 @@ document.addEventListener('click',function(e){
   if(b=t.closest('.app,.fc'))return openSheet(+b.dataset.i);
 });
 /* аккаунты, профили и загрузка файлов с телефона */
-var ME={in:false},OWN=false,picked=false,editId='',amode='in';
+var pac='',ME={in:false},OWN=false,picked=false,editId='',amode='in';
 function ownerInfo(){try{ME=JSON.parse(Store.me())}catch(e){ME={in:false}}OWN=!!ME.in;document.body.classList.toggle('na',!OWN);if(OWN)document.getElementById('v-auth').classList.remove('on')}
 function canEdit(a){return OWN&&(ME.admin||a.author==ME.username)}
 function fab(){document.getElementById('fab').style.display=(OWN&&tab=='home')?'flex':'none'}
@@ -347,32 +352,35 @@ function drawAuth(){
   el.classList.add('on');
 }
 function onNeedLogin(){OWN=false;document.body.classList.add('na');drawAuth()}
-function onAuth(ok,t){if(ok){ownerInfo();drawOwn();fab();load();go('home')}else{var m=document.getElementById('auth-msg');if(m)m.textContent=t;var b=document.getElementById('auth-go');if(b)b.disabled=false}}
+function onAuth(ok,t){if(ok){try{if(!localStorage.tut){localStorage.tut=1;setTimeout(openHelp,600)}}catch(e){}ownerInfo();drawOwn();fab();load();go('home')}else{var m=document.getElementById('auth-msg');if(m)m.textContent=t;var b=document.getElementById('auth-go');if(b)b.disabled=false}}
 function doAuth(){var u=g('a-u'),p=document.getElementById('a-p').value;if(!u||!p){document.getElementById('auth-msg').textContent='Введи ник и пароль';return}document.getElementById('auth-go').disabled=true;document.getElementById('auth-msg').textContent='Подключаюсь';Store.auth(amode=='up',u,p,g('a-i'))}
 function drawOwn(){
   var el=document.getElementById('s-own');if(!el)return;
   if(!OWN){el.innerHTML='';return}
-  var u=A[ME.username]||{name:ME.name||ME.username,bio:ME.bio||'',avatar:ME.avatar,badge:''};
-  el.innerHTML='<div class="pc glass" style="cursor:default">'+av(ME.username,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">@'+esc(ME.username)+(ME.admin?' · админ':'')+'</div></div></div><div style="padding:8px 16px 0">'+fld('Имя','<input id="p-n" value="'+esc(u.name)+'">')+fld('О себе','<textarea id="p-b" rows="2">'+esc(u.bio||'')+'</textarea>')+'</div><button class="btn" data-own="photo" style="margin-bottom:8px">Сменить фото</button><button class="btn pri" data-own="save">Сохранить профиль</button><button class="btn" style="margin-top:8px" data-own="out">Выйти</button><div class="note" id="own-msg"></div>';
+  var u=A[ME.username]||{name:ME.name||ME.username,bio:ME.bio||'',avatar:ME.avatar,badge:''};if(u.accent==null)u.accent=ME.accent||'';u.accent=pac=(pacSet?pac:u.accent);
+  el.innerHTML='<div class="pc glass" style="cursor:default">'+av(ME.username,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">@'+esc(ME.username)+(ME.admin?' · админ':'')+'</div></div></div><div style="padding:8px 16px 0">'+fld('Имя','<input id="p-n" value="'+esc(u.name)+'">')+fld('О себе','<textarea id="p-b" rows="2">'+esc(u.bio||'')+'</textarea>')+'<div class="meta" style="margin:8px 0">Цвет профиля</div><div class="sw" id="p-ac">'+['','262','215','185','145','95','35','350'].map(function(h){return '<button data-pac="'+h+'" class="'+((u.accent||'')==h?'on':'')+'" style="background:'+(h?hsl(+h,55,isDark()?65:45):'var(--surface-var,#888)')+'">'+((u.accent||'')==h?ico('check'):'')+'</button>'}).join('')+'</div></div><button class="btn" data-own="photo" style="margin-bottom:8px">Сменить фото</button><button class="btn pri" data-own="save">Сохранить профиль</button><button class="btn" style="margin-top:8px" data-own="out">Выйти</button><div class="note" id="own-msg"></div>';
 }
+var pacSet=false;
 function ownAct(a){
   if(a=='out'){Store.logout();A={};apps=[];ownerInfo();onNeedLogin();return}
   if(a=='photo'){Store.pickAvatar();return}
-  document.getElementById('own-msg').textContent='Сохраняю';Store.saveProfile(JSON.stringify({name:g('p-n'),bio:g('p-b')}));
+  document.getElementById('own-msg').textContent='Сохраняю';Store.saveProfile(JSON.stringify({name:g('p-n'),bio:g('p-b'),accent:pac}));
 }
-function onSaved(ok,t){ownerInfo();var m=document.getElementById('own-msg');if(m)m.textContent=ok?'Сохранено':t;if(ok){load();if(prof)openProf(prof)}}
+function onSaved(ok,t){pacSet=false;ownerInfo();var m=document.getElementById('own-msg');if(m)m.textContent=ok?'Сохранено':t;if(ok){load();if(prof)openProf(prof)}}
 function openUpload(id){
-  picked=false;editId=id||'';
+  picked=false;pickedIc=false;editId=id||'';
   var a=editId?apps.filter(function(x){return(x.id||x.name)==editId})[0]:null;a=a||{};
   var ty=[['','Определить сам']].concat(Object.keys(TYPES).map(function(k){return[k,TYPES[k]]})).map(function(t){return '<option value="'+t[0]+'"'+(a.type==t[0]?' selected':'')+'>'+t[1]+'</option>'}).join('');
-  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">'+(editId?'Изменить запись':'Новая запись')+'</div><button class="btn" id="pick">'+ico('file')+(editId?'Заменить файл':'Выбрать файл')+'</button><div class="meta" id="pf" style="margin:8px 0 16px">'+(editId?'Файл можно не менять':'Файл не выбран (до 50 МБ)')+'</div>'+fld('Или ссылка на файл (для больших)','<input id="u-l" placeholder="https://" autocapitalize="none">')+fld('Название','<input id="u-n" value="'+esc(a.name||'')+'">')+fld('Версия','<input id="u-v" placeholder="1.0" value="'+esc(a.version||'')+'">')+fld('Описание','<textarea id="u-d" rows="3">'+esc(a.desc||'')+'</textarea>')+fld('Теги через запятую','<input id="u-g" placeholder="1.21, Fabric" value="'+esc((a.tags||[]).join(', '))+'">')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+(editId?'Сохранить':'Опубликовать')+'</button>';
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">'+(editId?'Изменить запись':'Новая запись')+'</div><button class="btn" id="pick">'+ico('file')+(editId?'Заменить файл':'Выбрать файл')+'</button><div class="meta" id="pf" style="margin:8px 0 16px">'+(editId?'Файл можно не менять':'Файл не выбран (до 50 МБ)')+'</div>'+fld('Или ссылка на файл (для больших)','<input id="u-l" placeholder="https://" autocapitalize="none">')+'<button class="btn" id="pick-ic">'+ico('image')+'Значок приложения</button><div class="meta" id="pic" style="margin:8px 0 16px">'+(a.icon?'Значок уже есть, можно заменить':'Без значка (по желанию, картинка)')+'</div>'+fld('Название','<input id="u-n" value="'+esc(a.name||'')+'">')+fld('Версия','<input id="u-v" placeholder="1.0" value="'+esc(a.version||'')+'">')+fld('Описание','<textarea id="u-d" rows="3">'+esc(a.desc||'')+'</textarea>')+fld('Теги через запятую','<input id="u-g" placeholder="1.21, Fabric" value="'+esc((a.tags||[]).join(', '))+'">')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+(editId?'Сохранить':'Опубликовать')+'</button>';
   document.body.classList.add('sh');
 }
+var pickedIc=false;
+function onIconPicked(n){pickedIc=true;document.getElementById('pic').textContent=n}
 function onPicked(name,size){picked=true;document.getElementById('pf').textContent=name+' · '+fmt(size);var n=document.getElementById('u-n');if(n&&!n.value)n.value=name.replace(/\.[^.]*$/,'')}
 function publish(){
   var n=g('u-n'),l=g('u-l');if(!editId&&!picked&&!l){msg('Выбери файл или вставь ссылку');return}if(!n){msg('Введи название');return}
-  var o={name:n,version:g('u-v'),desc:g('u-d'),tags:g('u-g'),type:g('u-t'),newFile:picked&&!l,link:l};
-  if(editId){var a=apps.filter(function(x){return(x.id||x.name)==editId})[0]||{};o.id=editId;o.file=a.file||'';o.size=a.size||''}
+  var o={name:n,version:g('u-v'),desc:g('u-d'),tags:g('u-g'),type:g('u-t'),newFile:picked&&!l,link:l,newIcon:pickedIc};
+  if(editId){var a=apps.filter(function(x){return(x.id||x.name)==editId})[0]||{};o.id=editId;o.file=a.file||'';o.size=a.size||'';o.icon=a.icon||''}
   document.getElementById('pub').disabled=true;msg('Начинаю');
   Store.upload(JSON.stringify(o));
 }
@@ -381,6 +389,11 @@ function onUploadStage(t){msg(t)}
 function onUploadDone(ok,t){if(ok){closeSheet();load();document.getElementById('note').textContent='Опубликовано.'}else{msg(t);var b=document.getElementById('pub');if(b)b.disabled=false}}
 function rmApp(b){if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Нажми ещё раз, чтобы убрать';return}var a=apps.filter(function(x){return(x.id||x.name)==b.dataset.rm})[0]||{};Store.remove(b.dataset.rm,a.file||'')}
 function onRemoved(ok,t){closeSheet();if(ok)load();else document.getElementById('note').textContent=t}
+function openHelp(){
+  var st=[['Загрузить файл','Нажми плюс на главной, выбери файл с телефона: APK, мир или мод для Minecraft, jar. Тип определится сам. Размер до 50 МБ.'],['Большой файл или ссылка','Если файл больше 50 МБ, положи его в облако и вставь ссылку в поле «Или ссылка на файл». Ссылка должна начинаться с https:// и вести прямо на файл, а не на страницу с кнопкой «Скачать». У Google Диска, Яндекс Диска и Mega обычные ссылки открывают страницу, такие не сработают. Проверка простая: открой ссылку в браузере, если файл сразу начал скачиваться, ссылка подходит.'],['Значок приложения','Кнопка «Значок приложения» в форме загрузки: выбери картинку. Её увидят в каталоге и в карточке.'],['Свой профиль','Вкладка «Вид», раздел «Профиль»: имя, о себе, фото, цвет профиля. Ник менять нельзя.'],['Скачать и открыть','Нажми на карточку. APK установится, мир или мод Bedrock откроется в Minecraft, остальное скачается в загрузки.']];
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Как пользоваться</div>'+st.map(function(x,i){return '<div class="full" style="margin-bottom:14px"><b>'+(i+1)+'. '+x[0]+'</b><br>'+x[1]+'</div>'}).join('')+'<button class="btn pri" id="help-ok">Понятно</button>';
+  document.body.classList.add('sh');
+}
 function initApp(){try{Store.init(SUPA_URL,SUPA_KEY)}catch(e){}ownerInfo();apply();drawNav();fab();if(OWN)load();else onNeedLogin()}
 document.getElementById('list').innerHTML='<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
 initApp();
