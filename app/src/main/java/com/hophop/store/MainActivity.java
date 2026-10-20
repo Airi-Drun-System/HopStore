@@ -50,7 +50,7 @@ public class MainActivity extends Activity {
     private File dlFile;
     private int mode = OTHER;
     private boolean waitingPerm;
-    private static final int PICK = 77, AVATAR = 78;
+    private static final int PICK = 77, AVATAR = 78, ICON = 79;
     private static final long MAX_UPLOAD = 52428800L;
     private String base = "", anon = "";
 
@@ -58,6 +58,9 @@ public class MainActivity extends Activity {
     private Uri pickedUri;
     private String pickedName = "", pickedMime = "application/octet-stream";
     private long pickedSize = -1;
+    private Uri iconUri;
+    private String iconMime = "image/png", iconName = "icon.png";
+    private long iconSize = -1;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -183,7 +186,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int rq, int rc, Intent d) {
         super.onActivityResult(rq, rc, d);
-        if ((rq != PICK && rq != AVATAR) || rc != RESULT_OK || d == null || d.getData() == null) return;
+        if ((rq != PICK && rq != AVATAR && rq != ICON) || rc != RESULT_OK || d == null || d.getData() == null) return;
         Uri u = d.getData();
         String mime = getContentResolver().getType(u), name = "file";
         long size = -1;
@@ -198,6 +201,11 @@ public class MainActivity extends Activity {
         if (rq == PICK) {
             pickedUri = u; pickedMime = mime; pickedName = name; pickedSize = size;
             toJs("onPicked(" + JSONObject.quote(name) + "," + Math.max(size, 0) + ")");
+            return;
+        }
+        if (rq == ICON) {
+            iconUri = u; iconMime = mime; iconName = name; iconSize = size;
+            toJs("onIconPicked(" + JSONObject.quote(name) + ")");
             return;
         }
         final Uri au = u; final String am = mime, an = name; final long as = size;
@@ -264,11 +272,11 @@ public class MainActivity extends Activity {
     }
 
     private void loadProfile() throws Exception {
-        JSONArray a = new JSONArray(call("profiles?id=eq." + uid() + "&select=username,name,bio,avatar_url,badge,role", null));
+        JSONArray a = new JSONArray(call("profiles?id=eq." + uid() + "&select=username,name,bio,avatar_url,badge,role,accent", null));
         if (a.length() == 0) throw new Exception("Профиль не найден");
         JSONObject p = a.getJSONObject(0);
         prefs().edit().putString("username", p.getString("username")).putString("name", p.optString("name"))
-            .putString("bio", p.optString("bio")).putString("avatar", p.optString("avatar_url"))
+            .putString("bio", p.optString("bio")).putString("accent", p.optString("accent")).putString("avatar", p.optString("avatar_url"))
             .putString("role", p.optString("role")).apply();
     }
 
@@ -287,7 +295,7 @@ public class MainActivity extends Activity {
         if (size > MAX_UPLOAD) throw new Exception("Файл больше 50 МБ. Вставь ссылку вместо файла");
         int dot = name.lastIndexOf('.');
         String ext = dot > 0 ? name.substring(dot).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9.]", "") : "";
-        String path = uid() + "/" + (kind.equals("avatar") ? "avatar-" : "") + slug(name.replaceAll("\\.[^.]*$", ""))
+        String path = uid() + "/" + (kind.equals("file") ? "" : kind + "-") + slug(name.replaceAll("\\.[^.]*$", ""))
                 + "-" + Long.toString(System.currentTimeMillis() / 1000, 36) + ext;
         HttpURLConnection c = (HttpURLConnection) new URL(base + "/storage/v1/object/files/" + path).openConnection();
         c.setRequestMethod("POST"); c.setDoOutput(true); c.setConnectTimeout(20000); c.setReadTimeout(120000);
@@ -318,6 +326,12 @@ public class MainActivity extends Activity {
 
     private void doUpload(JSONObject f) throws Exception {
         final String editId = f.optString("id");
+        String icon = f.optString("icon");
+        if (f.optBoolean("newIcon") && iconUri != null) {
+            String oldIcon = icon;
+            icon = putFile(iconUri, iconMime, iconName, iconSize, "icon");
+            if (!oldIcon.isEmpty()) dropFile(oldIcon);
+        }
         String url = f.optString("file"), size = f.optString("size"), link = f.optString("link");
         String oldUrl = null;
         if (!link.isEmpty()) {
@@ -336,11 +350,11 @@ public class MainActivity extends Activity {
         if (editId.isEmpty()) {
             call("items", new JSONObject().put("name", f.getString("name")).put("version", f.optString("version"))
                 .put("description", f.optString("desc")).put("tags", tags).put("type", f.optString("type"))
-                .put("file_url", url).put("size", size).toString());
+                .put("file_url", url).put("size", size).put("icon_url", icon).toString());
         } else {
             call("rpc/update_item", new JSONObject().put("p_id", editId).put("p_name", f.getString("name"))
                 .put("p_version", f.optString("version")).put("p_desc", f.optString("desc")).put("p_tags", tags)
-                .put("p_type", f.optString("type")).put("p_file", url).put("p_size", size).toString());
+                .put("p_type", f.optString("type")).put("p_file", url).put("p_size", size).put("p_icon", icon).toString());
             if (oldUrl != null && !oldUrl.equals(url)) dropFile(oldUrl);
         }
     }
@@ -367,7 +381,7 @@ public class MainActivity extends Activity {
                 SharedPreferences p = prefs();
                 return new JSONObject().put("in", loggedIn()).put("username", p.getString("username", ""))
                     .put("name", p.getString("name", "")).put("bio", p.getString("bio", ""))
-                    .put("avatar", p.getString("avatar", "")).put("admin", p.getString("role", "").equals("admin")).toString();
+                    .put("accent", p.getString("accent", "")).put("avatar", p.getString("avatar", "")).put("admin", p.getString("role", "").equals("admin")).toString();
             } catch (Exception e) { return "{}"; }
         }
 
@@ -413,14 +427,14 @@ public class MainActivity extends Activity {
                 String text; boolean cached = false;
                 try {
                     if (!loggedIn()) { toJs("onNeedLogin()"); return; }
-                    JSONArray pr = new JSONArray(call("profiles?select=id,username,name,bio,avatar_url,badge", null));
+                    JSONArray pr = new JSONArray(call("profiles?select=id,username,name,bio,avatar_url,badge,accent", null));
                     JSONArray it = new JSONArray(call("items?select=*&order=created_at.desc", null));
                     JSONObject authors = new JSONObject(), ids = new JSONObject();
                     for (int i = 0; i < pr.length(); i++) {
                         JSONObject p = pr.getJSONObject(i);
                         ids.put(p.getString("id"), p.getString("username"));
                         authors.put(p.getString("username"), new JSONObject().put("name", p.optString("name"))
-                            .put("bio", p.optString("bio")).put("avatar", p.optString("avatar_url")).put("badge", p.optString("badge")));
+                            .put("bio", p.optString("bio")).put("avatar", p.optString("avatar_url")).put("badge", p.optString("badge")).put("accent", p.optString("accent")));
                     }
                     JSONArray apps = new JSONArray();
                     for (int i = 0; i < it.length(); i++) {
@@ -429,7 +443,7 @@ public class MainActivity extends Activity {
                             .put("author", ids.optString(o.optString("author"), "")).put("type", o.optString("type"))
                             .put("version", o.optString("version")).put("size", o.optString("size"))
                             .put("desc", o.optString("description")).put("tags", o.optJSONArray("tags") == null ? new JSONArray() : o.getJSONArray("tags"))
-                            .put("file", o.optString("file_url")));
+                            .put("file", o.optString("file_url")).put("icon", o.optString("icon_url")));
                     }
                     text = new JSONObject().put("authors", authors).put("apps", apps).toString();
                     try (FileOutputStream fo = new FileOutputStream(cache)) { fo.write(text.getBytes("UTF-8")); }
@@ -450,7 +464,7 @@ public class MainActivity extends Activity {
                     JSONObject p = new JSONObject(json);
                     String nm = p.optString("name").trim();
                     call("rpc/update_profile", new JSONObject().put("p_name", nm.isEmpty() ? prefs().getString("username", "") : nm)
-                        .put("p_bio", p.optString("bio")).toString());
+                        .put("p_bio", p.optString("bio")).put("p_accent", p.optString("accent")).toString());
                     loadProfile();
                     toJs("onSaved(true,'')");
                 } catch (Exception e) { toJs("onSaved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
@@ -472,6 +486,12 @@ public class MainActivity extends Activity {
                     toJs("onSaved(true,'')");
                 } catch (Exception e) { toJs("onSaved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
             }).start();
+        }
+
+        @JavascriptInterface
+        public void pickIcon() {
+            runOnUiThread(() -> startActivityForResult(
+                new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*"), ICON));
         }
 
         @JavascriptInterface
