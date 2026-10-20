@@ -6,11 +6,15 @@
 1. На GitHub создай публичный репозиторий HopStore и загрузи в него все файлы из этой папки (кнопка Add file, Upload files; папку .github тоже).
 2. Вкладка Actions, запусти build. Через пару минут внизу страницы запуска будет файл HopStore-apk. Скачай, распакуй, поставь на телефон.
 
-## Добавлять с телефона (режим автора)
-1. На GitHub: Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token. Repository access: только HopStore. Permissions, Contents: Read and write. Скопируй ключ (показывается один раз).
-2. В приложении: вкладка Вид, раздел Автор, вставь ключ, Включить.
-3. На вкладке Каталог появится кнопка Добавить: выбери файл с телефона, название, описание, Опубликовать. Файл уйдёт в Releases, запись в каталог, и его увидят все.
-4. Убрать запись: открой приложение в каталоге, внизу «Убрать из магазина».
+## Профили и загрузка с телефона
+У каждого участника свой профиль (по GitHub-аккаунту) и свои записи. Загружать можно APK, моды и миры Bedrock (.mcworld, .mcpack, .mcaddon, .mctemplate), моды Java (.jar, .mrpack) и любые файлы. Теги: версия игры, загрузчик и т.п.
+
+Ключ GitHub нужен каждому, кто загружает:
+- Владелец: Settings, Developer settings, Personal access tokens, Fine-grained tokens. Repository access: только HopStore. Permissions: Contents, Read and write.
+- Друг: сначала владелец добавляет его в Settings, Collaborators репозитория HopStore. Потом друг создаёт Tokens (classic) с галочкой public_repo (fine-grained ключи не работают в чужих репозиториях).
+
+В приложении: вкладка Вид, раздел Профиль, вставить ключ, Войти. Профиль создастся сам; имя и «О себе» можно менять. Значки выдаёт только владелец, на странице профиля.
+Каждый может изменить или убрать свои записи, владелец любые.
 
 ## Добавить приложение вручную
 1. Releases, New release, тег v1, прикрепи APK (или любой файл), опубликуй.
@@ -28,6 +32,7 @@
 ## Профили и значки
 В catalog.json в блоке authors у каждого автора: name, bio, avatar (ссылка, можно пусто) и badge:
 studio (звезда), verified (печать), mod (щит), friend (сердце), tester (ромб).
+type: app, game, tool, media, bedrock, java, file (если не указан, определяется по расширению файла).
 В записи приложения укажи "author": "id автора".
 
 ## Вид
