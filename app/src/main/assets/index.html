@@ -117,6 +117,15 @@ body.sh #scrim{opacity:1;pointer-events:auto}body.sh #sheet{transform:none}
 .fact{height:28px;padding:0 12px;border-radius:14px;background:var(--sc);color:var(--on-sc);font-size:12.5px;font-weight:500;display:flex;align-items:center}
 .full{font-size:14.5px;line-height:1.5;white-space:pre-wrap;margin-bottom:20px}
 #sheet .btn{margin:0;width:100%;height:52px;border-radius:26px}
+/* режим автора */
+.fab{position:fixed;right:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:2;height:56px;border-radius:16px;padding:0 22px 0 18px;border:0;background:var(--pc);color:var(--on-pc);font-weight:600;font-size:15px;display:none;align-items:center;gap:10px;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.fab svg{width:24px;height:24px}.fab:active{transform:scale(.96)}
+.fl{display:block;margin:0 0 12px}.fl span{display:block;font-size:12px;font-weight:600;opacity:.7;margin:0 0 4px 4px}
+.fl input,.fl select,.fl textarea{width:100%;border:0;border-radius:14px;background:var(--sv);color:inherit;font:inherit;font-size:16px;padding:14px 16px;outline:none}
+.fl input:focus,.fl select:focus,.fl textarea:focus{box-shadow:0 0 0 2px var(--primary)}
+.pg{height:6px;border-radius:3px;background:var(--sc);overflow:hidden;margin:12px 0 4px}.pg i{display:block;height:100%;width:0;background:var(--primary);transition:width .2s}
+#sheet .btn.dng{background:none;color:#d32f2f;margin-top:8px;height:48px}
+#sheet .btn:disabled{opacity:.5}
 </style></head><body>
 <div id="bg"></div>
 
@@ -139,6 +148,7 @@ body.sh #scrim{opacity:1;pointer-events:auto}body.sh #sheet{transform:none}
   <h2>Тема</h2><div class="seg" id="s-theme"></div>
   <h2>Цвет</h2><div class="sw" id="s-acc"></div>
   <h2>Фон</h2><div class="tiles" id="s-bg"></div>
+  <h2>Автор</h2><div id="s-own"></div>
   <h2>Каталог</h2>
   <button class="btn" id="refresh"></button>
   <div class="note">Hangar Vault 1.0 · Hop Hop Studio</div>
@@ -146,6 +156,7 @@ body.sh #scrim{opacity:1;pointer-events:auto}body.sh #sheet{transform:none}
 
 <section class="view" id="v-prof"></section>
 
+<button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Добавить</button>
 <nav id="nav"></nav>
 <div id="scrim"></div><div id="sheet"></div>
 
@@ -253,7 +264,7 @@ function closeProf(){prof='';document.getElementById('v-prof').classList.remove(
 /* карточка приложения */
 function openSheet(i){
   var a=apps[i],u=A[a.author],mc=kind(a)=='mc';
-  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(mc?'Открыть в Minecraft':ext(a.file||a.apk)=='apk'||!ext(a.file||a.apk)?'Установить':'Скачать')+'</button>';
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(mc?'Открыть в Minecraft':ext(a.file||a.apk)=='apk'||!ext(a.file||a.apk)?'Установить':'Скачать')+'</button>'+(OWN?'<button class="btn dng" data-rm="'+esc(a.id||a.name)+'">Убрать из магазина</button>':'');
   document.body.classList.add('sh');
 }
 function closeSheet(){document.body.classList.remove('sh')}
@@ -273,12 +284,13 @@ function drawSet(){
   document.getElementById('s-acc').innerHTML=sw;
   document.getElementById('s-bg').innerHTML=Object.keys(BGS).map(function(k){return '<button class="tile'+(S.bg==k?' on':'')+'" data-bg="'+k+'">'+bgHTML(k)+(S.bg==k?'<span class="ck">'+ico('check')+'</span>':'')+'<span class="tn">'+BGS[k]+'</span></button>'}).join('');
   document.getElementById('refresh').innerHTML=ico('refresh')+'Обновить список';
+  drawOwn();
 }
 
 /* навигация */
 var NAV=[['home','Каталог','home'],['authors','Авторы','people'],['set','Вид','palette']];
 function drawNav(){document.getElementById('nav').innerHTML=NAV.map(function(n){return '<button data-v="'+n[0]+'" class="'+(tab==n[0]?'on':'')+'"><span class="pill">'+ico(n[2])+'</span>'+n[1]+'</button>'}).join('')}
-function go(v){closeProf();closeSheet();tab=v;NAV.forEach(function(n){document.getElementById('v-'+n[0]).classList.toggle('on',n[0]==v)});drawNav()}
+function go(v){closeProf();closeSheet();tab=v;NAV.forEach(function(n){document.getElementById('v-'+n[0]).classList.toggle('on',n[0]==v)});drawNav();fab()}
 function hsBack(){if(document.body.classList.contains('sh')){closeSheet();return true}if(prof){closeProf();return true}if(tab!='home'){go('home');return true}return false}
 
 /* загрузка каталога */
@@ -295,6 +307,11 @@ function load(){if(window.Store)Store.loadCatalog(CATALOG_URL);else onCatalogErr
 document.getElementById('q').oninput=home;
 document.addEventListener('click',function(e){
   var t=e.target,b;
+  if(t.closest('#fab'))return openUpload();
+  if(t.closest('#pick'))return Store.pick();
+  if(t.closest('#pub'))return publish();
+  if(b=t.closest('[data-own]'))return ownAct(b.dataset.own);
+  if(b=t.closest('[data-rm]'))return rmApp(b);
   if(b=t.closest('#nav button'))return go(b.dataset.v);
   if(b=t.closest('.chip')){cur=b.dataset.t;chips();return home()}
   if(b=t.closest('[data-th]')){S.theme=b.dataset.th;save();return apply()}
@@ -307,6 +324,42 @@ document.addEventListener('click',function(e){
   if(b=t.closest('.go,.btn[data-i]'))return fetchFile(+b.dataset.i,b);
   if(b=t.closest('.app,.fc'))return openSheet(+b.dataset.i);
 });
+/* режим автора: загрузка файлов с телефона */
+var OWN=false,picked=false;
+function ownerInfo(){try{OWN=!!JSON.parse(Store.owner()).has}catch(e){OWN=false}}
+function fab(){document.getElementById('fab').style.display=(OWN&&tab=='home')?'flex':'none'}
+function drawOwn(){
+  var el=document.getElementById('s-own');if(!el)return;
+  el.innerHTML=OWN?'<div class="note" style="text-align:left;padding:0 20px 12px">Режим автора включён. На вкладке Каталог есть кнопка Добавить.</div><button class="btn" data-own="out">Выйти из режима автора</button>':'<div class="note" style="text-align:left;padding:0 20px 12px">Чтобы добавлять файлы прямо с телефона, вставь ключ GitHub с правом записи в репозиторий. Он хранится только на этом телефоне.</div><label class="fl" style="margin:0 16px 12px"><input id="tok" type="password" placeholder="Ключ GitHub" autocomplete="off"></label><button class="btn pri" data-own="in">Включить</button><div class="note" id="own-msg"></div>';
+}
+function ownAct(a){
+  if(a=='out'){Store.clearToken();OWN=false;drawOwn();fab();return}
+  var v=document.getElementById('tok').value.trim();if(!v)return;
+  document.getElementById('own-msg').textContent='Проверяю ключ';Store.setToken(v);
+}
+function onTokenResult(ok,t){if(ok){OWN=true;drawOwn();fab()}else{var m=document.getElementById('own-msg');if(m)m.textContent=t}}
+function g(i){var e=document.getElementById(i);return e?e.value.trim():''}
+function msg(t){var m=document.getElementById('pmsg');if(m)m.textContent=t}
+function fld(l,h){return '<label class="fl"><span>'+l+'</span>'+h+'</label>'}
+function fmt(b){return b>=1048576?(b/1048576).toFixed(b>=10485760?0:1)+' МБ':Math.max(1,Math.round(b/1024))+' КБ'}
+function openUpload(){
+  picked=false;
+  var au=Object.keys(A).map(function(k){return '<option value="'+esc(k)+'">'+esc(A[k].name)+'</option>'}).join('');
+  var ty=[['','Определить сам']].concat(Object.keys(TYPES).map(function(k){return[k,TYPES[k]]})).map(function(t){return '<option value="'+t[0]+'">'+t[1]+'</option>'}).join('');
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Новая запись</div><button class="btn" id="pick">'+ico('file')+'Выбрать файл</button><div class="meta" id="pf" style="margin:8px 0 16px">Файл не выбран</div>'+fld('Название','<input id="u-n">')+fld('Версия','<input id="u-v" placeholder="1.0">')+fld('Описание','<textarea id="u-d" rows="3"></textarea>')+(au?fld('Автор','<select id="u-a">'+au+'</select>'):'')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+'Опубликовать</button>';
+  document.body.classList.add('sh');
+}
+function onPicked(name,size){picked=true;document.getElementById('pf').textContent=name+' · '+fmt(size);var n=document.getElementById('u-n');if(n&&!n.value)n.value=name.replace(/\.[^.]*$/,'')}
+function publish(){
+  var n=g('u-n');if(!picked){msg('Сначала выбери файл');return}if(!n){msg('Введи название');return}
+  document.getElementById('pub').disabled=true;msg('Начинаю загрузку');
+  Store.upload(JSON.stringify({name:n,version:g('u-v'),desc:g('u-d'),author:g('u-a'),type:g('u-t')}));
+}
+function onUploadProgress(p){msg('Загрузка '+p+'%');var i=document.getElementById('pgi');if(i)i.style.width=p+'%'}
+function onUploadStage(t){msg(t)}
+function onUploadDone(ok,t){if(ok){closeSheet();load();document.getElementById('note').textContent='Опубликовано.'}else{msg(t);var b=document.getElementById('pub');if(b)b.disabled=false}}
+function rmApp(b){if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Нажми ещё раз, чтобы убрать';return}Store.remove(b.dataset.rm)}
+function onRemoved(ok,t){closeSheet();if(ok)load();else document.getElementById('note').textContent=t}
 document.getElementById('list').innerHTML='<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
-apply();drawNav();load();
+ownerInfo();apply();drawNav();fab();load();
 </script></body></html>
