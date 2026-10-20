@@ -1,0 +1,15 @@
+name: build
+on: [push, workflow_dispatch]
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.7" }
+      - run: keytool -genkeypair -keystore ci.jks -storepass hopstore -keypass hopstore -alias hopstore -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Hangar Vault"
+      - run: gradle assembleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with: { name: HopStore-apk, path: app/build/outputs/apk/release/*.apk }
