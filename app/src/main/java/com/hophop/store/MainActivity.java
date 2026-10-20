@@ -174,10 +174,12 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---- режим автора: загрузка файлов в GitHub (Releases + catalog.json) ----
+    // ---- профили и загрузка: GitHub (Releases + catalog.json) ----
 
     private SharedPreferences prefs() { return getSharedPreferences("hs", MODE_PRIVATE); }
     private String token() { return prefs().getString("token", ""); }
+    private String login() { return prefs().getString("login", ""); }
+    private boolean isOwner() { return login().equalsIgnoreCase(REPO.split("/")[0]); }
 
     @Override
     protected void onActivityResult(int rq, int rc, Intent d) {
@@ -212,21 +214,16 @@ public class MainActivity extends Activity {
         return new String[]{String.valueOf(code), in == null ? "" : readAll(in)};
     }
 
-    /** Добавляет запись в catalog.json (add) и/или убирает запись по id или названию (removeId). */
-    private void updateCatalog(JSONObject add, String removeId, String message) throws Exception {
+    private interface Mut { void run(JSONObject cat) throws Exception; }
+
+    /** Читает catalog.json, применяет изменение и сохраняет; при гонке с другим автором повторяет. */
+    private void mutate(String message, Mut m) throws Exception {
         for (int attempt = 0; attempt < 3; attempt++) {
             String[] g = api("GET", API + "/contents/catalog.json?ref=main", null);
             if (!g[0].equals("200")) throw new Exception("Не прочитать каталог: " + g[0]);
             JSONObject meta = new JSONObject(g[1]);
             JSONObject cat = new JSONObject(new String(Base64.decode(meta.getString("content"), Base64.DEFAULT), "UTF-8"));
-            JSONArray old = cat.optJSONArray("apps"), neu = new JSONArray();
-            if (add != null) neu.put(add);
-            for (int i = 0; old != null && i < old.length(); i++) {
-                JSONObject o = old.getJSONObject(i);
-                if (removeId != null && (removeId.equals(o.optString("id")) || removeId.equals(o.optString("name")))) continue;
-                neu.put(o);
-            }
-            cat.put("apps", neu);
+            m.run(cat);
             JSONObject put = new JSONObject();
             put.put("message", message).put("branch", "main").put("sha", meta.getString("sha"))
                .put("content", Base64.encodeToString(cat.toString(2).replace("\\/", "/").getBytes("UTF-8"), Base64.NO_WRAP));
@@ -235,6 +232,18 @@ public class MainActivity extends Activity {
             if (!p[0].equals("409")) throw new Exception("Не сохранить каталог: " + p[0]);
         }
         throw new Exception("Каталог занят, попробуй ещё раз");
+    }
+
+    private static JSONObject authors(JSONObject cat) throws Exception {
+        JSONObject a = cat.optJSONObject("authors");
+        if (a == null) { a = new JSONObject(); cat.put("authors", a); }
+        return a;
+    }
+
+    private static JSONObject author(JSONObject cat, String login) throws Exception {
+        JSONObject a = authors(cat), u = a.optJSONObject(login);
+        if (u == null) { u = new JSONObject(); a.put(login, u); }
+        return u;
     }
 
     private static String slug(String s) {
@@ -247,12 +256,10 @@ public class MainActivity extends Activity {
         return Math.max(1, b / 1024) + " КБ";
     }
 
-    private void doUpload(JSONObject f) throws Exception {
-        String name = f.getString("name");
+    private String uploadAsset(String id) throws Exception {
+        String ext = "";
         int dot = pickedName.lastIndexOf('.');
-        String ext = dot > 0 ? pickedName.substring(dot).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9.]", "") : "";
-        String id = slug(name) + "-" + Long.toString(System.currentTimeMillis() / 1000, 36);
-
+        if (dot > 0) ext = pickedName.substring(dot).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9.]", "");
         toJs("onUploadStage('Готовлю релиз')");
         String[] r = api("GET", API + "/releases/tags/files", null);
         if (r[0].equals("404"))
@@ -260,8 +267,9 @@ public class MainActivity extends Activity {
         if (!r[0].equals("200") && !r[0].equals("201")) throw new Exception("Релиз: " + r[0]);
         long relId = new JSONObject(r[1]).getLong("id");
 
+        String assetName = id + "-" + Long.toString(System.currentTimeMillis() / 1000, 36) + ext;
         HttpURLConnection c = (HttpURLConnection) new URL("https://uploads.github.com/repos/" + REPO + "/releases/" + relId
-                + "/assets?name=" + URLEncoder.encode(id + ext, "UTF-8")).openConnection();
+                + "/assets?name=" + URLEncoder.encode(assetName, "UTF-8")).openConnection();
         c.setRequestMethod("POST"); c.setDoOutput(true); c.setConnectTimeout(20000); c.setReadTimeout(120000);
         if (pickedSize > 0) c.setFixedLengthStreamingMode(pickedSize); else c.setChunkedStreamingMode(0);
         c.setRequestProperty("Authorization", "Bearer " + token());
@@ -278,18 +286,49 @@ public class MainActivity extends Activity {
         int code = c.getResponseCode();
         String resp = readAll(code < 400 ? c.getInputStream() : c.getErrorStream());
         if (code != 201) throw new Exception("Загрузка файла: " + code);
-        String url = new JSONObject(resp).getString("browser_download_url");
+        return new JSONObject(resp).getString("browser_download_url");
+    }
 
+    private void doUpload(JSONObject f) throws Exception {
+        final String name = f.getString("name"), editId = f.optString("id");
+        final String id = editId.isEmpty() ? slug(name) + "-" + Long.toString(System.currentTimeMillis() / 1000, 36) : editId;
+        String url = f.optString("file"), size = f.optString("size");
+        if (f.optBoolean("newFile")) {
+            if (pickedUri == null) throw new Exception("Файл не выбран");
+            url = uploadAsset(slug(name));
+            size = human(Math.max(pickedSize, 0));
+        }
+        if (url.isEmpty()) throw new Exception("Нет файла");
         toJs("onUploadStage('Обновляю каталог')");
-        JSONObject e = new JSONObject();
+
+        final JSONObject e = new JSONObject();
         e.put("id", id).put("name", name);
-        if (!f.optString("author").isEmpty()) e.put("author", f.getString("author"));
+        e.put("author", editId.isEmpty() ? login() : f.optString("author", login()));
         if (!f.optString("type").isEmpty()) e.put("type", f.getString("type"));
         if (!f.optString("version").isEmpty()) e.put("version", f.getString("version"));
-        e.put("size", human(Math.max(pickedSize, 0)));
+        if (!size.isEmpty()) e.put("size", size);
         if (!f.optString("desc").isEmpty()) e.put("desc", f.getString("desc"));
+        JSONArray tags = new JSONArray();
+        for (String t : f.optString("tags").split(",")) if (!t.trim().isEmpty()) tags.put(t.trim());
+        if (tags.length() > 0) e.put("tags", tags);
         e.put("file", url);
-        updateCatalog(e, null, "Добавлено: " + name);
+
+        mutate((editId.isEmpty() ? "Добавлено: " : "Изменено: ") + name, cat -> {
+            JSONArray old = cat.optJSONArray("apps"), neu = new JSONArray();
+            boolean replaced = false;
+            for (int i = 0; old != null && i < old.length(); i++) {
+                JSONObject o = old.getJSONObject(i);
+                if (!editId.isEmpty() && (editId.equals(o.optString("id")) || editId.equals(o.optString("name")))) {
+                    neu.put(e); replaced = true;
+                } else neu.put(o);
+            }
+            if (!replaced) {
+                JSONArray first = new JSONArray(); first.put(e);
+                for (int i = 0; i < neu.length(); i++) first.put(neu.get(i));
+                neu = first;
+            }
+            cat.put("apps", neu);
+        });
     }
 
     private static String readAll(InputStream in) throws Exception {
@@ -306,43 +345,89 @@ public class MainActivity extends Activity {
         public String palette() { return palette; }
 
         @JavascriptInterface
-        public String owner() { return "{\"has\":" + !token().isEmpty() + "}"; }
+        public String owner() {
+            try {
+                return new JSONObject().put("has", !token().isEmpty()).put("login", login())
+                    .put("name", prefs().getString("name", "")).put("owner", isOwner()).toString();
+            } catch (Exception e) { return "{}"; }
+        }
 
         @JavascriptInterface
-        public void clearToken() { prefs().edit().remove("token").apply(); }
+        public void clearToken() { prefs().edit().remove("token").remove("login").remove("name").apply(); }
 
-        /** Сохраняем ключ только если GitHub подтвердил право записи в репозиторий. */
+        /** Вход по ключу: проверяем доступ, узнаём GitHub-логин и создаём профиль автора, если его ещё нет. */
         @JavascriptInterface
         public void setToken(final String t) {
             new Thread(() -> {
+                SharedPreferences.Editor ed = prefs().edit();
                 String old = token();
-                prefs().edit().putString("token", t.trim()).apply();
+                ed.putString("token", t.trim()).apply();
+                String err = null;
                 try {
+                    String[] u = api("GET", "https://api.github.com/user", null);
+                    if (!u[0].equals("200")) throw new Exception("Ключ не подошёл (код " + u[0] + ")");
+                    final JSONObject me = new JSONObject(u[1]);
                     String[] r = api("GET", API, null);
-                    boolean ok = r[0].equals("200") && new JSONObject(r[1]).optJSONObject("permissions") != null
-                            && new JSONObject(r[1]).getJSONObject("permissions").optBoolean("push");
-                    // у fine-grained ключей поле permissions бывает пустым: проверяем чтением каталога
-                    if (!ok && r[0].equals("200")) ok = api("GET", API + "/contents/catalog.json?ref=main", null)[0].equals("200");
-                    if (!ok) { prefs().edit().putString("token", old).apply(); }
-                    toJs("onTokenResult(" + ok + "," + JSONObject.quote(ok ? "" : "Ключ не подошёл (код " + r[0] + ")") + ")");
-                } catch (Exception e) {
-                    prefs().edit().putString("token", old).apply();
-                    toJs("onTokenResult(false," + JSONObject.quote("Нет связи с GitHub") + ")");
-                }
+                    JSONObject perm = r[0].equals("200") ? new JSONObject(r[1]).optJSONObject("permissions") : null;
+                    boolean push = perm != null && perm.optBoolean("push");
+                    if (!push && !(r[0].equals("200") && api("GET", API + "/contents/catalog.json?ref=main", null)[0].equals("200")))
+                        throw new Exception("У ключа нет доступа к " + REPO);
+                    final String lg = me.getString("login");
+                    final String nm = me.optString("name", "");
+                    prefs().edit().putString("login", lg).putString("name", nm.isEmpty() ? lg : nm).apply();
+                    mutate("Профиль: " + lg, cat -> {
+                        JSONObject a = authors(cat);
+                        if (a.has(lg)) return;
+                        JSONObject p = new JSONObject();
+                        p.put("name", nm.isEmpty() ? lg : nm).put("bio", "").put("avatar", me.optString("avatar_url"));
+                        if (lg.equalsIgnoreCase(REPO.split("/")[0])) p.put("badge", "studio");
+                        a.put(lg, p);
+                    });
+                } catch (Exception e) { err = String.valueOf(e.getMessage()); }
+                if (err != null) ed.putString("token", old).apply();
+                toJs("onTokenResult(" + (err == null) + "," + JSONObject.quote(err == null ? "" : err) + ")");
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void saveProfile(final String json) {
+            new Thread(() -> {
+                try {
+                    final JSONObject p = new JSONObject(json);
+                    mutate("Профиль: " + login(), cat -> {
+                        JSONObject u = author(cat, login());
+                        u.put("name", p.optString("name", login()).isEmpty() ? login() : p.optString("name"));
+                        u.put("bio", p.optString("bio"));
+                    });
+                    toJs("onSaved(true,'')");
+                } catch (Exception e) { toJs("onSaved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
+            }).start();
+        }
+
+        /** Значки выдаёт только владелец магазина. */
+        @JavascriptInterface
+        public void setBadge(final String who, final String badge) {
+            new Thread(() -> {
+                try {
+                    if (!isOwner()) throw new Exception("Значки выдаёт владелец");
+                    mutate("Значок: " + who, cat -> {
+                        JSONObject u = author(cat, who);
+                        if (badge.isEmpty()) u.remove("badge"); else u.put("badge", badge);
+                    });
+                    toJs("onSaved(true,'')");
+                } catch (Exception e) { toJs("onSaved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
             }).start();
         }
 
         @JavascriptInterface
         public void pick() {
-            runOnUiThread(() -> {
-                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
-                startActivityForResult(i, PICK);
-            });
+            runOnUiThread(() -> startActivityForResult(
+                new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), PICK));
         }
 
         @JavascriptInterface
         public void upload(final String json) {
-            if (pickedUri == null || token().isEmpty()) { toJs("onUploadDone(false,'Выбери файл')"); return; }
+            if (token().isEmpty()) { toJs("onUploadDone(false,'Войди по ключу во вкладке Вид')"); return; }
             runOnUiThread(() -> getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
             new Thread(() -> {
                 String err = null;
@@ -352,11 +437,23 @@ public class MainActivity extends Activity {
             }).start();
         }
 
+        /** Убрать запись может её автор или владелец. */
         @JavascriptInterface
         public void remove(final String id) {
             new Thread(() -> {
-                try { updateCatalog(null, id, "Убрано: " + id); toJs("onRemoved(true,'')"); }
-                catch (Exception e) { toJs("onRemoved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
+                try {
+                    mutate("Убрано: " + id, cat -> {
+                        JSONArray old = cat.optJSONArray("apps"), neu = new JSONArray();
+                        for (int i = 0; old != null && i < old.length(); i++) {
+                            JSONObject o = old.getJSONObject(i);
+                            if (id.equals(o.optString("id")) || id.equals(o.optString("name"))) {
+                                if (!isOwner() && !login().equals(o.optString("author"))) throw new Exception("Это чужая запись");
+                            } else neu.put(o);
+                        }
+                        cat.put("apps", neu);
+                    });
+                    toJs("onRemoved(true,'')");
+                } catch (Exception e) { toJs("onRemoved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
             }).start();
         }
 
