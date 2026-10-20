@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hangar Vault</title>
+<style>
+:root{--primary:#6750A4;--on-primary:#fff;--pc:#EADDFF;--on-pc:#21005D;--sc:#E8DEF8;--on-sc:#1D192B;--tc:#FFD8E4;--on-tc:#31111D;--surface:#FEF7FF;--on-surface:#1D1B20;--sv:#ECE6F0;--outline:#79747E;--card:#F3EDF7;--bl:60px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--surface);color:var(--on-surface);font:400 14px/1.4 "Google Sans",Roboto,system-ui,sans-serif;overflow:hidden}
+svg{display:block}button{font:inherit;color:inherit;cursor:pointer}
+#bg{position:fixed;inset:0;z-index:0}
+.bgl{position:absolute;inset:0;overflow:hidden;background:var(--surface)}
+.bgl .fx{position:absolute;inset:0}
+.b-grad .fx{background:linear-gradient(180deg,var(--pc),transparent 60%)}
+.b-aurora i{position:absolute;border-radius:50%;filter:blur(var(--bl));opacity:.55;animation:dr 18s ease-in-out infinite alternate}
+.b-aurora i:nth-child(1){width:80%;height:50%;left:-20%;top:-10%;background:var(--primary);opacity:.35}
+.b-aurora i:nth-child(2){width:70%;height:45%;right:-25%;top:25%;background:var(--tc);animation-delay:-6s}
+.b-aurora i:nth-child(3){width:75%;height:45%;left:-10%;bottom:-15%;background:var(--pc);animation-delay:-11s}
+@keyframes dr{to{transform:translate(12%,8%) scale(1.15)}}
+.b-dots .fx{background:radial-gradient(var(--outline) 1.3px,transparent 1.8px) 0 0/22px 22px;opacity:.3}
+.b-grid .fx{background:linear-gradient(var(--outline) 1px,transparent 1px) 0 0/30px 30px,linear-gradient(90deg,var(--outline) 1px,transparent 1px) 0 0/30px 30px;opacity:.16;-webkit-mask-image:linear-gradient(#000,transparent 90%)}
+.b-waves svg{position:absolute;left:0;bottom:0;width:100%;height:60%}
+\.b-dia .fx{background:var(--outline);opacity:.12;-webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><path d='M24 6l8 18-8 18-8-18z' fill='black'/></svg>") 0 0/48px 48px}
+.view{position:fixed;inset:0;z-index:1;overflow-y:auto;padding:env(safe-area-inset-top) 0 120px;display:none}
+.view.on{display:block;animation:vi .28s cubic-bezier(.2,0,0,1)}
+@keyframes vi{from{opacity:0;transform:translateY(10px)}}
+#v-prof{z-index:3;background:var(--surface)}
+header{padding:36px 24px 8px}
+h1{margin:0;font-size:32px;line-height:40px;font-weight:600;letter-spacing:-.3px}
+h2{margin:20px 24px 8px;font-size:14px;font-weight:600;color:var(--primary)}
+.sub{opacity:.7}
+.glass{background:color-mix(in srgb,var(--card) 84%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.search{margin:12px 16px 4px;height:56px;border-radius:28px;background:color-mix(in srgb,var(--sv) 85%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);display:flex;align-items:center;gap:12px;padding:0 20px}
+.search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:16px;color:inherit;outline:none}
+.search input::placeholder{color:inherit;opacity:.6}
+.feat{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 8px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.feat::-webkit-scrollbar,.chips::-webkit-scrollbar{display:none}
+.fc{flex:none;width:272px;height:172px;border-radius:32px;padding:20px;position:relative;overflow:hidden;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:flex-end}
+.fc .big{position:absolute;right:-14px;top:-14px;width:120px;height:120px;opacity:.22;transform:rotate(12deg)}
+.fc .big svg{width:100%;height:100%}
+.fc .nm{font-size:22px;font-weight:600;line-height:26px;position:relative}
+.fc .au{font-size:13px;opacity:.8;display:flex;align-items:center;gap:6px;position:relative;margin-top:4px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:8px 16px;scrollbar-width:none}
+.chip{flex:none;height:32px;border-radius:8px;border:1px solid var(--outline);background:none;display:flex;align-items:center;gap:6px;padding:0 14px;font-weight:500}
+.chip.on{background:var(--sc);color:var(--on-sc);border-color:transparent;padding-left:8px}
+.chip svg{width:18px;height:18px}
+.list{padding:8px 16px 0}
+.app{display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:2px;border-radius:6px;animation:in .4s cubic-bezier(.2,0,0,1) both;cursor:pointer}
+.app:first-child{border-radius:28px 28px 6px 6px}.app:last-child{border-radius:6px 6px 28px 28px}.app:only-child{border-radius:28px}
+.app:active{filter:brightness(.96)}
+@keyframes in{from{opacity:0;transform:translateY(12px)}}
+.ic{width:52px;height:52px;border-radius:16px;flex:none;display:grid;place-items:center;overflow:hidden}
+.ic svg{width:28px;height:28px}.ic img{width:100%;height:100%;object-fit:cover}
+.info{flex:1;min-width:0}
+.nm{font-size:16px;font-weight:600;line-height:22px;display:flex;align-items:center;gap:6px}
+.au{display:flex;align-items:center;gap:6px;font-size:12.5px}
+.meta{font-size:12px;opacity:.7}
+.ds{font-size:13px;margin-top:3px;opacity:.85;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.av{display:inline-grid;place-items:center;border-radius:50%;font-weight:700;overflow:hidden;flex:none}
+.av img{width:100%;height:100%;object-fit:cover}
+.bd{flex:none}
+.go{width:48px;height:48px;border-radius:24px;border:0;flex:none;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;transition:border-radius .25s,transform .15s}
+.go:active{transform:scale(.92);border-radius:16px}
+.go.busy svg{animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.note{text-align:center;opacity:.6;font-size:12px;padding:12px 16px}
+.empty{text-align:center;padding:56px 24px;opacity:.85}
+.empty .ic{width:80px;height:80px;border-radius:40px;margin:0 auto 16px;background:var(--pc);color:var(--on-pc)}
+.empty .ic svg{width:36px;height:36px}
+.sk{height:84px;margin:0 16px 2px;border-radius:6px;background:var(--card);animation:pl 1.2s ease-in-out infinite}
+@keyframes pl{50%{opacity:.5}}
+/* авторы */
+.pc{display:flex;align-items:center;gap:16px;padding:16px 20px;margin:0 16px 8px;border-radius:28px;cursor:pointer}
+.pc .info .nm{font-size:17px}
+.back{margin:12px 12px 0;width:48px;height:48px;border-radius:24px;border:0;background:none;display:grid;place-items:center}
+.ph{text-align:center;padding:0 24px 12px}
+.ph .av{width:96px;height:96px;font-size:40px;margin-bottom:12px}
+.ph .nm{justify-content:center;font-size:26px;line-height:32px}
+.tag{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:14px;background:var(--sc);color:var(--on-sc);font-size:12.5px;font-weight:500;margin:8px 0}
+.ph p{margin:4px 0 0;opacity:.8}
+/* настройки */
+.seg{display:flex;margin:0 16px;border:1px solid var(--outline);border-radius:20px;overflow:hidden;background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.seg button{flex:1;height:40px;border:0;border-left:1px solid var(--outline);background:none;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--sc);color:var(--on-sc)}
+.seg svg{width:18px;height:18px}
+.sw{display:flex;flex-wrap:wrap;gap:12px;padding:0 20px}
+.sw button{width:48px;height:48px;border-radius:50%;border:0;display:grid;place-items:center;color:#fff}
+.sw button.on{outline:3px solid var(--on-surface);outline-offset:2px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px;padding:0 16px}
+.tile{position:relative;aspect-ratio:3/4;border-radius:20px;overflow:hidden;border:0;padding:0;background:none;outline:1px solid var(--outline);--bl:14px}
+.tile .tn{position:absolute;left:0;right:0;bottom:0;padding:18px 8px 8px;text-align:center;font-weight:600;font-size:12.5px;background:linear-gradient(transparent,color-mix(in srgb,var(--surface) 90%,transparent))}
+.tile.on{outline:3px solid var(--primary)}
+.tile .ck{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center}
+.tile .ck svg{width:16px;height:16px}
+.btn{margin:0 16px;height:48px;border-radius:24px;border:0;background:var(--sc);color:var(--on-sc);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 24px}
+.btn.pri{background:var(--primary);color:var(--on-primary)}
+.btn svg,.back svg{width:22px;height:22px}
+.search svg{flex:none}
+/* нижняя навигация */
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:4;display:flex;height:calc(80px + env(safe-area-inset-bottom));padding:12px 8px env(safe-area-inset-bottom);background:color-mix(in srgb,var(--card) 88%,transparent);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+#nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:500;opacity:.75}
+#nav .pill{width:64px;height:32px;border-radius:16px;display:grid;place-items:center;transition:background .25s,width .25s}
+#nav svg{width:24px;height:24px}
+#nav button.on{opacity:1;font-weight:700}
+#nav button.on .pill{background:var(--pc);color:var(--on-pc)}
+/* карточка приложения */
+#scrim{position:fixed;inset:0;z-index:5;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:6;max-height:86%;overflow-y:auto;background:var(--surface);border-radius:32px 32px 0 0;padding:12px 24px calc(24px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .35s cubic-bezier(.2,0,0,1)}
+body.sh #scrim{opacity:1;pointer-events:auto}body.sh #sheet{transform:none}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--outline);opacity:.5;margin:0 auto 20px}
+.sh-top{display:flex;gap:16px;align-items:center}
+.sh-top .ic{width:72px;height:72px;border-radius:22px}.sh-top .ic svg{width:38px;height:38px}
+.sh-top .nm{font-size:22px;line-height:28px}
+.who{display:inline-flex;align-items:center;gap:8px;margin-top:4px;border:0;background:none;padding:0;font-weight:500;color:var(--primary)}
+.facts{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 12px}
+.fact{height:28px;padding:0 12px;border-radius:14px;background:var(--sc);color:var(--on-sc);font-size:12.5px;font-weight:500;display:flex;align-items:center}
+.full{font-size:14.5px;line-height:1.5;white-space:pre-wrap;margin-bottom:20px}
+#sheet .btn{margin:0;width:100%;height:52px;border-radius:26px}
+</style></head><body>
+<div id="bg"></div>
+
+<section class="view on" id="v-home">
+  <header><h1>Hangar Vault</h1><div class="sub" id="cnt">Загрузка</div></header>
+  <div class="search"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="q" placeholder="Поиск" autocomplete="off"></div>
+  <div id="featw"></div>
+  <div class="chips" id="chips"></div>
+  <div class="list" id="list"></div>
+  <div class="note" id="note"></div>
+</section>
+
+<section class="view" id="v-authors">
+  <header><h1>Авторы</h1><div class="sub">Кто выкладывает приложения</div></header>
+  <div style="height:16px"></div><div id="alist"></div>
+</section>
+
+<section class="view" id="v-set">
+  <header><h1>Вид</h1><div class="sub">Тема, цвет и фон</div></header>
+  <h2>Тема</h2><div class="seg" id="s-theme"></div>
+  <h2>Цвет</h2><div class="sw" id="s-acc"></div>
+  <h2>Фон</h2><div class="tiles" id="s-bg"></div>
+  <h2>Каталог</h2>
+  <button class="btn" id="refresh"></button>
+  <div class="note">Hangar Vault 1.0 · Hop Hop Studio</div>
+</section>
+
+<section class="view" id="v-prof"></section>
+
+<nav id="nav"></nav>
+<div id="scrim"></div><div id="sheet"></div>
+
+<script src="config.js"></script>
+<script>
+var IC={
+search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+download:'<path d="M12 4v11"/><path d="M7.5 11l4.5 4.5 4.5-4.5"/><path d="M5 19.5h14"/>',
+spin:'<path d="M12 4a8 8 0 1 0 8 8"/>',
+check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+back:'<path d="M15 5l-7 7 7 7"/>',
+app:'<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
+game:'<path d="M7 8h10a4 4 0 0 1 3.9 4.9l-.7 3.2a2.4 2.4 0 0 1-4.1 1.1L14.5 15h-5l-1.6 2.2a2.4 2.4 0 0 1-4.1-1.1l-.7-3.2A4 4 0 0 1 7 8z"/><path d="M8 10.5v3M6.5 12h3"/><path d="M15.5 11.5h.01M17.5 13.5h.01"/>',
+tool:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+media:'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
+file:'<path d="M7 3.5h7l4.5 4.5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5V8h4.5"/>',
+mc:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/>',
+home:'<path d="M4 11l8-7 8 7"/><path d="M6 10v9.5h4v-5h4v5h4V10"/>',
+people:'<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.5-3.2 2.6-5 5.5-5s5 1.8 5.5 5"/><circle cx="17" cy="9.5" r="2.4"/><path d="M16 14.2c2.6-.2 4.3 1.4 4.8 4.3"/>',
+palette:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.9 1.4-1.9-.5-1.2.3-2.3 1.6-2.3H17a3.5 3.5 0 0 0 3.5-3.5C20.5 7 16.8 3.5 12 3.5z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="7.8" r="1"/><circle cx="16" cy="10" r="1"/>',
+sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/>',
+moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+auto:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/>',
+refresh:'<path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 4v4.5h-4.5"/>'};
+var TYPES={app:'Приложения',game:'Игры',tool:'Инструменты',media:'Медиа',mc:'Minecraft',file:'Файлы'};
+function ico(n){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[n]+'</svg>'}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function plural(n,w){var m=n%10;return n+' '+w[n%100>10&&n%100<20?2:m==1?0:m>1&&m<5?1:2]}
+
+/* значки авторов: у каждого своя форма и цвет */
+function pts(n,ro,ri){var r=[];for(var i=0;i<n*2;i++){var a=Math.PI*i/n-Math.PI/2,q=i%2?ri:ro;r.push((12+q*Math.cos(a)).toFixed(2)+','+(12+q*Math.sin(a)).toFixed(2))}return r.join(' ')}
+var CK='<path d="M8 12.4l2.8 2.8 5.2-5.6" fill="none" stroke="#fff" stroke-width="2.2"/>';
+var BD={
+studio:{n:'Студия',c:'#F2A60D',s:'<polygon points="'+pts(5,10.4,4.8)+'"/>'},
+verified:{n:'Проверенный автор',c:'#1B8CF4',s:'<polygon points="'+pts(9,10.6,8.6)+'"/>'+CK},
+mod:{n:'Модератор',c:'#1F9D6B',s:'<path d="M12 2.8l7.6 2.8v6c0 4.7-3.2 8.2-7.6 9.6-4.4-1.4-7.6-4.9-7.6-9.6v-6z"/>'+CK},
+friend:{n:'Друг студии',c:'#E8508A',s:'<path d="M12 20.5s-8-4.9-8-10.7A4.6 4.6 0 0 1 12 6.9a4.6 4.6 0 0 1 8 2.9c0 5.8-8 10.7-8 10.7z"/>'},
+tester:{n:'Тестировщик',c:'#8B5CF6',s:'<path d="M12 2.6l9 9.4-9 9.4-9-9.4z"/>'+CK}};
+function badge(k,s){var b=BD[k];if(!b)return'';return '<svg class="bd" width="'+(s||16)+'" height="'+(s||16)+'" viewBox="0 0 24 24" style="color:'+b.c+'" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>'+b.n+'</title>'+b.s+'</svg>'}
+
+/* палитра: Material You с обоев либо из выбранного оттенка */
+var P={};try{P=JSON.parse(window.Store?Store.palette():'{}')}catch(e){}
+var M={primary:'primary',onPrimary:'on-primary',pc:'pc',onPc:'on-pc',sc:'sc',onSc:'on-sc',tc:'tc',onTc:'on-tc',surface:'surface',onSurface:'on-surface',sv:'sv',outline:'outline',card:'card'};
+function hsl(h,s,l){return 'hsl('+((h%360+360)%360)+','+s+'%,'+l+'%)'}
+function mk(h,d){return d?{primary:hsl(h,90,82),onPrimary:hsl(h,60,20),pc:hsl(h,40,30),onPc:hsl(h,100,92),sc:hsl(h,18,30),onSc:hsl(h,40,90),tc:hsl(h+55,28,30),onTc:hsl(h+55,90,92),surface:hsl(h,14,8),onSurface:hsl(h,15,90),sv:hsl(h,10,17),outline:hsl(h,8,60),card:hsl(h,12,13)}:{primary:hsl(h,45,44),onPrimary:'#fff',pc:hsl(h,100,92),onPc:hsl(h,80,15),sc:hsl(h,35,90),onSc:hsl(h,30,15),tc:hsl(h+55,90,91),onTc:hsl(h+55,60,16),surface:hsl(h,100,99),onSurface:hsl(h,12,12),sv:hsl(h,25,92),outline:hsl(h,8,47),card:hsl(h,40,95)}}
+var S={theme:'auto',accent:P.sys?'sys':'262',bg:'aurora'};
+try{var sv=JSON.parse(localStorage.getItem('hs')||'{}');for(var k in sv)S[k]=sv[k]}catch(e){}
+function save(){try{localStorage.setItem('hs',JSON.stringify(S))}catch(e){}}
+function isDark(){return S.theme=='dark'||(S.theme=='auto'&&(P.night!=null?P.night:matchMedia('(prefers-color-scheme: dark)').matches))}
+
+/* фоны */
+var BGS={plain:'Чистый',grad:'Рассвет',aurora:'Аврора',dots:'Точки',grid:'Сетка',waves:'Волны',dia:'Ромбы'};
+if(!BGS[S.bg])S.bg='aurora';
+function bgHTML(k){
+  var x='<div class="fx"></div>';
+  if(k=='aurora')x='<i></i><i></i><i></i>';
+  if(k=='waves')x='<svg viewBox="0 0 400 240" preserveAspectRatio="none"><path style="fill:var(--sc)" d="M0 70C70 20 130 20 200 60S330 100 400 40V240H0z"/><path style="fill:var(--pc)" d="M0 130C80 90 140 90 210 125S330 160 400 115V240H0z"/><path style="fill:var(--tc);opacity:.8" d="M0 180C90 150 150 150 220 175S340 200 400 170V240H0z"/></svg>';
+  return '<div class="bgl b-'+k+'">'+x+'</div>'}
+function apply(){
+  var d=isDark(),c=(S.accent=='sys'&&P.sys)?P.sys[d?'dark':'light']:mk(+S.accent||262,d),r=document.documentElement;
+  for(var k in M)r.style.setProperty('--'+M[k],c[k]);
+  document.getElementById('bg').innerHTML=bgHTML(S.bg);
+  try{var m=getComputedStyle(document.body).backgroundColor.match(/\d+/g);Store.bars('#'+m.slice(0,3).map(function(x){return('0'+(+x).toString(16)).slice(-2)}).join(''),d)}catch(e){}
+  drawSet();
+}
+
+/* данные */
+var apps=[],A={},cur='',tab='home',prof='';
+function ext(f){return(String(f).split(/[?#]/)[0].match(/\.(\w+)$/)||[])[1]||''}
+function kind(a){if(a.type&&IC[a.type])return a.type;return/^(mcworld|mcpack|mcaddon|mctemplate)$/i.test(ext(a.file||a.apk))?'mc':'app'}
+function tone(a){var h=0,s=a.name||'';for(var i=0;i<s.length;i++)h+=s.charCodeAt(i);return['pc','sc','tc'][h%3]}
+function av(id,s){var u=A[id]||{name:'?'},t=tone(u);return '<span class="av" style="width:'+s+'px;height:'+s+'px;font-size:'+Math.round(s*.46)+'px;background:var(--'+t+');color:var(--on-'+t+')">'+(u.avatar?'<img src="'+esc(u.avatar)+'" alt="">':esc((u.name||'?').charAt(0).toUpperCase()))+'</span>'}
+function who(a,s){var u=A[a.author];return u?av(a.author,s||18)+'<span>'+esc(u.name)+'</span>'+badge(u.badge,s||16):''}
+function icon(a){return a.icon?'<img src="'+esc(a.icon)+'" alt="">':ico(kind(a))}
+function goIco(a){return ico(kind(a)=='mc'?'mc':'download')}
+function cardHTML(a,i){return '<div class="app glass" data-i="'+apps.indexOf(a)+'" style="animation-delay:'+Math.min(i,8)*45+'ms"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a)+'</div><div class="meta">'+esc([a.version,a.size].filter(Boolean).join(' · '))+'</div><div class="ds">'+esc(a.desc||'')+'</div></div><button class="go" aria-label="Скачать" data-i="'+apps.indexOf(a)+'">'+goIco(a)+'</button></div>'}
+function emptyHTML(t,i){return '<div class="empty"><div class="ic">'+ico(i||'app')+'</div>'+t+'</div>'}
+
+function chips(){
+  var ts=[];apps.forEach(function(a){if(ts.indexOf(kind(a))<0)ts.push(kind(a))});
+  var el=document.getElementById('chips');
+  if(ts.length<2){el.innerHTML='';cur='';return}
+  el.innerHTML=[['','Все']].concat(ts.map(function(t){return[t,TYPES[t]]})).map(function(c){return '<button class="chip'+(cur==c[0]?' on':'')+'" data-t="'+c[0]+'">'+(cur==c[0]?ico('check'):'')+c[1]+'</button>'}).join('')}
+var FT=[['pc','tc'],['sc','pc'],['tc','sc']];
+function home(){
+  var q=document.getElementById('q').value.trim().toLowerCase();
+  var l=apps.filter(function(a){return(!cur||kind(a)==cur)&&(!q||(a.name+' '+(a.desc||'')+' '+((A[a.author]||{}).name||'')).toLowerCase().indexOf(q)>=0)});
+  var f=apps.filter(function(a){return a.featured}).concat(apps).filter(function(a,i,r){return r.indexOf(a)==i}).slice(0,5);
+  document.getElementById('featw').innerHTML=(!q&&!cur&&apps.length>2)?'<h2>Новое</h2><div class="feat">'+f.map(function(a,i){var t=FT[i%3];return '<div class="fc" data-i="'+apps.indexOf(a)+'" style="background:linear-gradient(135deg,var(--'+t[0]+'),var(--'+t[1]+'));color:var(--on-'+t[0]+')"><div class="big">'+icon(a)+'</div><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a,18)+'</div></div>'}).join('')+'</div>':'';
+  document.getElementById('list').innerHTML=l.length?l.map(cardHTML).join(''):emptyHTML(apps.length?'Ничего не найдено':'Пока здесь пусто');
+}
+function authors(){
+  var ids=Object.keys(A);
+  document.getElementById('alist').innerHTML=ids.length?ids.map(function(id){var u=A[id],n=apps.filter(function(a){return a.author==id}).length;return '<div class="pc glass" data-a="'+esc(id)+'">'+av(id,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">'+plural(n,['приложение','приложения','приложений'])+'</div><div class="ds">'+esc(u.bio||'')+'</div></div></div>'}).join(''):emptyHTML('Авторов пока нет','people');
+}
+function openProf(id){
+  var u=A[id];if(!u)return;prof=id;closeSheet();
+  var l=apps.filter(function(a){return a.author==id});
+  var el=document.getElementById('v-prof');
+  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph">'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div><h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
+  el.classList.add('on');el.scrollTop=0;
+}
+function closeProf(){prof='';document.getElementById('v-prof').classList.remove('on')}
+
+/* карточка приложения */
+function openSheet(i){
+  var a=apps[i],u=A[a.author],mc=kind(a)=='mc';
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(mc?'Открыть в Minecraft':ext(a.file||a.apk)=='apk'||!ext(a.file||a.apk)?'Установить':'Скачать')+'</button>';
+  document.body.classList.add('sh');
+}
+function closeSheet(){document.body.classList.remove('sh')}
+function fetchFile(i,btn){
+  var a=apps[i],f=a.file||a.apk;if(!f||!window.Store)return;
+  Store.get(f,a.id||a.name);
+  if(btn&&btn.classList.contains('go')){btn.classList.add('busy');btn.innerHTML=ico('spin');setTimeout(function(){btn.classList.remove('busy');btn.innerHTML=goIco(a)},3000)}
+}
+
+/* настройки */
+function drawSet(){
+  var th=[['auto','Авто','auto'],['light','Светлая','sun'],['dark','Тёмная','moon']];
+  document.getElementById('s-theme').innerHTML=th.map(function(t){return '<button data-th="'+t[0]+'" class="'+(S.theme==t[0]?'on':'')+'">'+ico(S.theme==t[0]?'check':t[2])+t[1]+'</button>'}).join('');
+  var hs=[262,215,185,145,95,35,350],d=isDark(),sw='';
+  if(P.sys)sw+='<button data-ac="sys" class="'+(S.accent=='sys'?'on':'')+'" style="background:conic-gradient('+P.sys.light.primary+','+P.sys.light.tc+','+P.sys.light.pc+','+P.sys.light.primary+')">'+(S.accent=='sys'?ico('check'):'')+'</button>';
+  hs.forEach(function(h){sw+='<button data-ac="'+h+'" class="'+(S.accent==h?'on':'')+'" style="background:'+hsl(h,55,d?65:45)+'">'+(S.accent==h?ico('check'):'')+'</button>'});
+  document.getElementById('s-acc').innerHTML=sw;
+  document.getElementById('s-bg').innerHTML=Object.keys(BGS).map(function(k){return '<button class="tile'+(S.bg==k?' on':'')+'" data-bg="'+k+'">'+bgHTML(k)+(S.bg==k?'<span class="ck">'+ico('check')+'</span>':'')+'<span class="tn">'+BGS[k]+'</span></button>'}).join('');
+  document.getElementById('refresh').innerHTML=ico('refresh')+'Обновить список';
+}
+
+/* навигация */
+var NAV=[['home','Каталог','home'],['authors','Авторы','people'],['set','Вид','palette']];
+function drawNav(){document.getElementById('nav').innerHTML=NAV.map(function(n){return '<button data-v="'+n[0]+'" class="'+(tab==n[0]?'on':'')+'"><span class="pill">'+ico(n[2])+'</span>'+n[1]+'</button>'}).join('')}
+function go(v){closeProf();closeSheet();tab=v;NAV.forEach(function(n){document.getElementById('v-'+n[0]).classList.toggle('on',n[0]==v)});drawNav()}
+function hsBack(){if(document.body.classList.contains('sh')){closeSheet();return true}if(prof){closeProf();return true}if(tab!='home'){go('home');return true}return false}
+
+/* загрузка каталога */
+function onCatalog(t,cached){
+  var j;try{j=JSON.parse(t)}catch(e){onCatalogError();return}
+  apps=j.apps||[];A=j.authors||{};
+  document.getElementById('cnt').textContent=plural(apps.length,['приложение','приложения','приложений']);
+  document.getElementById('note').textContent=cached?'Нет сети. Показан сохранённый список.':'';
+  chips();home();authors();
+}
+function onCatalogError(){document.getElementById('cnt').textContent='Нет связи';document.getElementById('list').innerHTML=emptyHTML('Не удалось загрузить список.<br>Проверь интернет.','refresh')}
+function load(){if(window.Store)Store.loadCatalog(CATALOG_URL);else onCatalogError()}
+
+document.getElementById('q').oninput=home;
+document.addEventListener('click',function(e){
+  var t=e.target,b;
+  if(b=t.closest('#nav button'))return go(b.dataset.v);
+  if(b=t.closest('.chip')){cur=b.dataset.t;chips();return home()}
+  if(b=t.closest('[data-th]')){S.theme=b.dataset.th;save();return apply()}
+  if(b=t.closest('[data-ac]')){S.accent=b.dataset.ac;save();return apply()}
+  if(b=t.closest('[data-bg]')){S.bg=b.dataset.bg;save();return apply()}
+  if(t.closest('#refresh'))return load();
+  if(t.closest('#pb'))return closeProf();
+  if(t.closest('#scrim'))return closeSheet();
+  if(b=t.closest('.who,.pc'))return openProf(b.dataset.a);
+  if(b=t.closest('.go,.btn[data-i]'))return fetchFile(+b.dataset.i,b);
+  if(b=t.closest('.app,.fc'))return openSheet(+b.dataset.i);
+});
+document.getElementById('list').innerHTML='<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
+apply();drawNav();load();
+</script></body></html>
