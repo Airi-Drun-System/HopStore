@@ -148,7 +148,7 @@ body.sh #scrim{opacity:1;pointer-events:auto}body.sh #sheet{transform:none}
   <h2>Тема</h2><div class="seg" id="s-theme"></div>
   <h2>Цвет</h2><div class="sw" id="s-acc"></div>
   <h2>Фон</h2><div class="tiles" id="s-bg"></div>
-  <h2>Автор</h2><div id="s-own"></div>
+  <h2>Профиль</h2><div id="s-own"></div>
   <h2>Каталог</h2>
   <button class="btn" id="refresh"></button>
   <div class="note">Hangar Vault 1.0 · Hop Hop Studio</div>
@@ -173,7 +173,8 @@ game:'<path d="M7 8h10a4 4 0 0 1 3.9 4.9l-.7 3.2a2.4 2.4 0 0 1-4.1 1.1L14.5 15h-
 tool:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
 media:'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
 file:'<path d="M7 3.5h7l4.5 4.5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5V8h4.5"/>',
-mc:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/>',
+bedrock:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/>',
+java:'<path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3v3M12 3v3"/>',
 home:'<path d="M4 11l8-7 8 7"/><path d="M6 10v9.5h4v-5h4v5h4V10"/>',
 people:'<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.5-3.2 2.6-5 5.5-5s5 1.8 5.5 5"/><circle cx="17" cy="9.5" r="2.4"/><path d="M16 14.2c2.6-.2 4.3 1.4 4.8 4.3"/>',
 palette:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.9 1.4-1.9-.5-1.2.3-2.3 1.6-2.3H17a3.5 3.5 0 0 0 3.5-3.5C20.5 7 16.8 3.5 12 3.5z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="7.8" r="1"/><circle cx="16" cy="10" r="1"/>',
@@ -181,7 +182,7 @@ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 
 moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
 auto:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/>',
 refresh:'<path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 4v4.5h-4.5"/>'};
-var TYPES={app:'Приложения',game:'Игры',tool:'Инструменты',media:'Медиа',mc:'Minecraft',file:'Файлы'};
+var TYPES={app:'Приложения',game:'Игры',tool:'Инструменты',media:'Медиа',bedrock:'Bedrock',java:'Java',file:'Файлы'};
 function ico(n){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[n]+'</svg>'}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function plural(n,w){var m=n%10;return n+' '+w[n%100>10&&n%100<20?2:m==1?0:m>1&&m<5?1:2]}
@@ -226,13 +227,13 @@ function apply(){
 /* данные */
 var apps=[],A={},cur='',tab='home',prof='';
 function ext(f){return(String(f).split(/[?#]/)[0].match(/\.(\w+)$/)||[])[1]||''}
-function kind(a){if(a.type&&IC[a.type])return a.type;return/^(mcworld|mcpack|mcaddon|mctemplate)$/i.test(ext(a.file||a.apk))?'mc':'app'}
+function kind(a){var e=ext(a.file||a.apk).toLowerCase(),t=a.type=='mc'?'bedrock':a.type;if(t&&IC[t]&&TYPES[t])return t;if(e=='apk')return'app';if(/^(mcworld|mcpack|mcaddon|mctemplate)$/.test(e))return'bedrock';if(/^(jar|mrpack|litemod)$/.test(e))return'java';return(a.file||a.apk)?'file':'app'}
 function tone(a){var h=0,s=a.name||'';for(var i=0;i<s.length;i++)h+=s.charCodeAt(i);return['pc','sc','tc'][h%3]}
 function av(id,s){var u=A[id]||{name:'?'},t=tone(u);return '<span class="av" style="width:'+s+'px;height:'+s+'px;font-size:'+Math.round(s*.46)+'px;background:var(--'+t+');color:var(--on-'+t+')">'+(u.avatar?'<img src="'+esc(u.avatar)+'" alt="">':esc((u.name||'?').charAt(0).toUpperCase()))+'</span>'}
 function who(a,s){var u=A[a.author];return u?av(a.author,s||18)+'<span>'+esc(u.name)+'</span>'+badge(u.badge,s||16):''}
 function icon(a){return a.icon?'<img src="'+esc(a.icon)+'" alt="">':ico(kind(a))}
-function goIco(a){return ico(kind(a)=='mc'?'mc':'download')}
-function cardHTML(a,i){return '<div class="app glass" data-i="'+apps.indexOf(a)+'" style="animation-delay:'+Math.min(i,8)*45+'ms"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a)+'</div><div class="meta">'+esc([a.version,a.size].filter(Boolean).join(' · '))+'</div><div class="ds">'+esc(a.desc||'')+'</div></div><button class="go" aria-label="Скачать" data-i="'+apps.indexOf(a)+'">'+goIco(a)+'</button></div>'}
+function goIco(a){return ico(kind(a)=='bedrock'?'bedrock':'download')}
+function cardHTML(a,i){return '<div class="app glass" data-i="'+apps.indexOf(a)+'" style="animation-delay:'+Math.min(i,8)*45+'ms"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a)+'</div><div class="meta">'+esc([a.version,a.size].concat((a.tags||[]).slice(0,2)).filter(Boolean).join(' · '))+'</div><div class="ds">'+esc(a.desc||'')+'</div></div><button class="go" aria-label="Скачать" data-i="'+apps.indexOf(a)+'">'+goIco(a)+'</button></div>'}
 function emptyHTML(t,i){return '<div class="empty"><div class="ic">'+ico(i||'app')+'</div>'+t+'</div>'}
 
 function chips(){
@@ -243,7 +244,7 @@ function chips(){
 var FT=[['pc','tc'],['sc','pc'],['tc','sc']];
 function home(){
   var q=document.getElementById('q').value.trim().toLowerCase();
-  var l=apps.filter(function(a){return(!cur||kind(a)==cur)&&(!q||(a.name+' '+(a.desc||'')+' '+((A[a.author]||{}).name||'')).toLowerCase().indexOf(q)>=0)});
+  var l=apps.filter(function(a){return(!cur||kind(a)==cur)&&(!q||(a.name+' '+(a.desc||'')+' '+((a.tags||[]).join(' '))+' '+((A[a.author]||{}).name||'')).toLowerCase().indexOf(q)>=0)});
   var f=apps.filter(function(a){return a.featured}).concat(apps).filter(function(a,i,r){return r.indexOf(a)==i}).slice(0,5);
   document.getElementById('featw').innerHTML=(!q&&!cur&&apps.length>2)?'<h2>Новое</h2><div class="feat">'+f.map(function(a,i){var t=FT[i%3];return '<div class="fc" data-i="'+apps.indexOf(a)+'" style="background:linear-gradient(135deg,var(--'+t[0]+'),var(--'+t[1]+'));color:var(--on-'+t[0]+')"><div class="big">'+icon(a)+'</div><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a,18)+'</div></div>'}).join('')+'</div>':'';
   document.getElementById('list').innerHTML=l.length?l.map(cardHTML).join(''):emptyHTML(apps.length?'Ничего не найдено':'Пока здесь пусто');
@@ -256,15 +257,15 @@ function openProf(id){
   var u=A[id];if(!u)return;prof=id;closeSheet();
   var l=apps.filter(function(a){return a.author==id});
   var el=document.getElementById('v-prof');
-  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph">'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div><h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
+  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph">'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div>'+(ME.owner?'<div class="chips">'+[['','Без значка']].concat(Object.keys(BD).map(function(k){return[k,BD[k].n]})).map(function(c){return '<button class="chip'+((u.badge||'')==c[0]?' on':'')+'" data-bd="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>':'')+'<h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
   el.classList.add('on');el.scrollTop=0;
 }
 function closeProf(){prof='';document.getElementById('v-prof').classList.remove('on')}
 
 /* карточка приложения */
 function openSheet(i){
-  var a=apps[i],u=A[a.author],mc=kind(a)=='mc';
-  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(mc?'Открыть в Minecraft':ext(a.file||a.apk)=='apk'||!ext(a.file||a.apk)?'Установить':'Скачать')+'</button>'+(OWN?'<button class="btn dng" data-rm="'+esc(a.id||a.name)+'">Убрать из магазина</button>':'');
+  var a=apps[i],u=A[a.author],mc=kind(a)=='bedrock';
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+(a.tags||[]).map(function(t){return '<span class="fact">'+esc(t)+'</span>'}).join('')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(mc?'Открыть в Minecraft':ext(a.file||a.apk)=='apk'||!ext(a.file||a.apk)?'Установить':'Скачать')+'</button>'+(canEdit(a)?'<button class="btn" style="margin-top:8px" data-ed="'+esc(a.id||a.name)+'">Изменить</button><button class="btn dng" data-rm="'+esc(a.id||a.name)+'">Убрать из магазина</button>':'');
   document.body.classList.add('sh');
 }
 function closeSheet(){document.body.classList.remove('sh')}
@@ -308,6 +309,8 @@ document.getElementById('q').oninput=home;
 document.addEventListener('click',function(e){
   var t=e.target,b;
   if(t.closest('#fab'))return openUpload();
+  if(b=t.closest('[data-bd]'))return Store.setBadge(prof,b.dataset.bd);
+  if(b=t.closest('[data-ed]'))return openUpload(b.dataset.ed);
   if(t.closest('#pick'))return Store.pick();
   if(t.closest('#pub'))return publish();
   if(b=t.closest('[data-own]'))return ownAct(b.dataset.own);
@@ -324,36 +327,43 @@ document.addEventListener('click',function(e){
   if(b=t.closest('.go,.btn[data-i]'))return fetchFile(+b.dataset.i,b);
   if(b=t.closest('.app,.fc'))return openSheet(+b.dataset.i);
 });
-/* режим автора: загрузка файлов с телефона */
-var OWN=false,picked=false;
-function ownerInfo(){try{OWN=!!JSON.parse(Store.owner()).has}catch(e){OWN=false}}
+/* профили и загрузка файлов с телефона */
+var ME={has:false},OWN=false,picked=false,editId='';
+function ownerInfo(){try{ME=JSON.parse(Store.owner())}catch(e){ME={has:false}}OWN=!!ME.has}
+function canEdit(a){return OWN&&(ME.owner||a.author==ME.login)}
 function fab(){document.getElementById('fab').style.display=(OWN&&tab=='home')?'flex':'none'}
-function drawOwn(){
-  var el=document.getElementById('s-own');if(!el)return;
-  el.innerHTML=OWN?'<div class="note" style="text-align:left;padding:0 20px 12px">Режим автора включён. На вкладке Каталог есть кнопка Добавить.</div><button class="btn" data-own="out">Выйти из режима автора</button>':'<div class="note" style="text-align:left;padding:0 20px 12px">Чтобы добавлять файлы прямо с телефона, вставь ключ GitHub с правом записи в репозиторий. Он хранится только на этом телефоне.</div><label class="fl" style="margin:0 16px 12px"><input id="tok" type="password" placeholder="Ключ GitHub" autocomplete="off"></label><button class="btn pri" data-own="in">Включить</button><div class="note" id="own-msg"></div>';
-}
-function ownAct(a){
-  if(a=='out'){Store.clearToken();OWN=false;drawOwn();fab();return}
-  var v=document.getElementById('tok').value.trim();if(!v)return;
-  document.getElementById('own-msg').textContent='Проверяю ключ';Store.setToken(v);
-}
-function onTokenResult(ok,t){if(ok){OWN=true;drawOwn();fab()}else{var m=document.getElementById('own-msg');if(m)m.textContent=t}}
 function g(i){var e=document.getElementById(i);return e?e.value.trim():''}
 function msg(t){var m=document.getElementById('pmsg');if(m)m.textContent=t}
 function fld(l,h){return '<label class="fl"><span>'+l+'</span>'+h+'</label>'}
 function fmt(b){return b>=1048576?(b/1048576).toFixed(b>=10485760?0:1)+' МБ':Math.max(1,Math.round(b/1024))+' КБ'}
-function openUpload(){
-  picked=false;
-  var au=Object.keys(A).map(function(k){return '<option value="'+esc(k)+'">'+esc(A[k].name)+'</option>'}).join('');
-  var ty=[['','Определить сам']].concat(Object.keys(TYPES).map(function(k){return[k,TYPES[k]]})).map(function(t){return '<option value="'+t[0]+'">'+t[1]+'</option>'}).join('');
-  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Новая запись</div><button class="btn" id="pick">'+ico('file')+'Выбрать файл</button><div class="meta" id="pf" style="margin:8px 0 16px">Файл не выбран</div>'+fld('Название','<input id="u-n">')+fld('Версия','<input id="u-v" placeholder="1.0">')+fld('Описание','<textarea id="u-d" rows="3"></textarea>')+(au?fld('Автор','<select id="u-a">'+au+'</select>'):'')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+'Опубликовать</button>';
+function drawOwn(){
+  var el=document.getElementById('s-own');if(!el)return;
+  if(!OWN){el.innerHTML='<div class="note" style="text-align:left;padding:0 20px 12px">Чтобы создать профиль и добавлять файлы, вставь ключ GitHub (инструкция в README). Он хранится только на этом телефоне.</div><div style="padding:0 16px"><label class="fl"><input id="tok" type="password" placeholder="Ключ GitHub" autocomplete="off"></label></div><button class="btn pri" data-own="in">Войти</button><div class="note" id="own-msg"></div>';return}
+  var u=A[ME.login]||{name:ME.name||ME.login,bio:''};
+  el.innerHTML='<div class="pc glass" style="cursor:default">'+av(ME.login,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">'+esc(ME.login)+'</div></div></div><div style="padding:8px 16px 0">'+fld('Имя','<input id="p-n" value="'+esc(u.name)+'">')+fld('О себе','<textarea id="p-b" rows="2">'+esc(u.bio||'')+'</textarea>')+'</div><button class="btn pri" data-own="save">Сохранить профиль</button><button class="btn" style="margin-top:8px" data-own="out">Выйти</button><div class="note" id="own-msg"></div>';
+}
+function ownAct(a){
+  if(a=='out'){Store.clearToken();ownerInfo();drawOwn();fab();return}
+  if(a=='save'){document.getElementById('own-msg').textContent='Сохраняю';Store.saveProfile(JSON.stringify({name:g('p-n'),bio:g('p-b')}));return}
+  var v=g('tok');if(!v)return;
+  document.getElementById('own-msg').textContent='Проверяю ключ';Store.setToken(v);
+}
+function onTokenResult(ok,t){if(ok){ownerInfo();load();drawOwn();fab()}else{var m=document.getElementById('own-msg');if(m)m.textContent=t}}
+function onSaved(ok,t){var m=document.getElementById('own-msg');if(m)m.textContent=ok?'Сохранено':t;if(ok){load();if(prof)openProf(prof)}}
+function openUpload(id){
+  picked=false;editId=id||'';
+  var a=editId?apps.filter(function(x){return(x.id||x.name)==editId})[0]:null;a=a||{};
+  var ty=[['','Определить сам']].concat(Object.keys(TYPES).map(function(k){return[k,TYPES[k]]})).map(function(t){return '<option value="'+t[0]+'"'+(a.type==t[0]?' selected':'')+'>'+t[1]+'</option>'}).join('');
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">'+(editId?'Изменить запись':'Новая запись')+'</div><button class="btn" id="pick">'+ico('file')+(editId?'Заменить файл':'Выбрать файл')+'</button><div class="meta" id="pf" style="margin:8px 0 16px">'+(editId?'Файл можно не менять':'Файл не выбран')+'</div>'+fld('Название','<input id="u-n" value="'+esc(a.name||'')+'">')+fld('Версия','<input id="u-v" placeholder="1.0" value="'+esc(a.version||'')+'">')+fld('Описание','<textarea id="u-d" rows="3">'+esc(a.desc||'')+'</textarea>')+fld('Теги через запятую','<input id="u-g" placeholder="1.21, Fabric" value="'+esc((a.tags||[]).join(', '))+'">')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+(editId?'Сохранить':'Опубликовать')+'</button>';
   document.body.classList.add('sh');
 }
 function onPicked(name,size){picked=true;document.getElementById('pf').textContent=name+' · '+fmt(size);var n=document.getElementById('u-n');if(n&&!n.value)n.value=name.replace(/\.[^.]*$/,'')}
 function publish(){
-  var n=g('u-n');if(!picked){msg('Сначала выбери файл');return}if(!n){msg('Введи название');return}
-  document.getElementById('pub').disabled=true;msg('Начинаю загрузку');
-  Store.upload(JSON.stringify({name:n,version:g('u-v'),desc:g('u-d'),author:g('u-a'),type:g('u-t')}));
+  var n=g('u-n');if(!editId&&!picked){msg('Сначала выбери файл');return}if(!n){msg('Введи название');return}
+  var o={name:n,version:g('u-v'),desc:g('u-d'),tags:g('u-g'),type:g('u-t'),newFile:picked};
+  if(editId){var a=apps.filter(function(x){return(x.id||x.name)==editId})[0]||{};o.id=editId;o.file=a.file||a.apk||'';o.size=a.size||'';o.author=a.author||''}
+  document.getElementById('pub').disabled=true;msg('Начинаю');
+  Store.upload(JSON.stringify(o));
 }
 function onUploadProgress(p){msg('Загрузка '+p+'%');var i=document.getElementById('pgi');if(i)i.style.width=p+'%'}
 function onUploadStage(t){msg(t)}
