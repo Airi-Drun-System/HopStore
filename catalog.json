@@ -1,0 +1,29 @@
+{
+  "authors": {
+    "vegas": {"name": "Vegas", "bio": "Hop Hop Studio.", "avatar": "", "badge": "studio"},
+    "friend1": {"name": "Друг", "bio": "Выкладывает свои приложения и сборки.", "avatar": "", "badge": "friend"}
+  },
+  "apps": [
+    {
+      "id": "example-app",
+      "name": "Пример приложения",
+      "author": "vegas",
+      "type": "app",
+      "version": "1.0",
+      "size": "12 МБ",
+      "desc": "Так выглядит запись. Замени на свою.",
+      "icon": "",
+      "featured": true,
+      "file": "https://github.com/Airi-Drun-System/HopStore/releases/download/v1/example.apk"
+    },
+    {
+      "id": "example-world",
+      "name": "Пример мира",
+      "author": "friend1",
+      "version": "1.0",
+      "size": "30 МБ",
+      "desc": "Сборка для Minecraft Bedrock. Кнопка скачает мир и откроет его в игре.",
+      "file": "https://github.com/Airi-Drun-System/HopStore/releases/download/v1/world.mcworld"
+    }
+  ]
+}
