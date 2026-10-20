@@ -336,7 +336,7 @@ public class MainActivity extends Activity {
         String oldUrl = null;
         if (!link.isEmpty()) {
             if (!link.startsWith("https://")) throw new Exception("Ссылка должна начинаться с https://");
-            oldUrl = url; url = link; size = "";
+            oldUrl = url; url = (f.optBoolean("site") ? "site:" : "") + link; size = "";
         } else if (f.optBoolean("newFile")) {
             if (pickedUri == null) throw new Exception("Файл не выбран");
             oldUrl = url;
@@ -541,6 +541,10 @@ public class MainActivity extends Activity {
         /** APK ставит, миры и паки Minecraft открывает в игре, остальное кладёт в Загрузки. */
         @JavascriptInterface
         public void get(final String url, final String name) {
+            if (url != null && url.startsWith("site:https://")) {
+                runOnUiThread(() -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url.substring(5)))));
+                return;
+            }
             if (url == null || !url.startsWith("https://")) { toast("Неверная ссылка"); return; }
             final String path = url.split("[?#]")[0];
             int dot = path.lastIndexOf('.');
