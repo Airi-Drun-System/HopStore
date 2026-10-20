@@ -1,0 +1,27 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.hophop.store'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.hophop.store'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+    signingConfigs {
+        release {
+            // Ключ создаётся в CI при каждой сборке: при обновлении самого магазина старую версию нужно удалить.
+            storeFile file('../ci.jks')
+            storePassword 'hopstore'
+            keyAlias 'hopstore'
+            keyPassword 'hopstore'
+        }
+    }
+    buildTypes {
+        release { signingConfig signingConfigs.release; minifyEnabled false }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'androidx.core:core:1.13.1' }
