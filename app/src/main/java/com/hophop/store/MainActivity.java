@@ -381,7 +381,7 @@ public class MainActivity extends Activity {
                 SharedPreferences p = prefs();
                 return new JSONObject().put("in", loggedIn()).put("username", p.getString("username", ""))
                     .put("name", p.getString("name", "")).put("bio", p.getString("bio", ""))
-                    .put("accent", p.getString("accent", "")).put("avatar", p.getString("avatar", "")).put("admin", p.getString("role", "").equals("admin")).toString();
+                    .put("accent", p.getString("accent", "")).put("avatar", p.getString("avatar", "")).put("admin", p.getString("role", "").equals("admin")).put("dev", p.getString("role", "").matches("admin|dev")).toString();
             } catch (Exception e) { return "{}"; }
         }
 
@@ -427,14 +427,14 @@ public class MainActivity extends Activity {
                 String text; boolean cached = false;
                 try {
                     if (!loggedIn()) { toJs("onNeedLogin()"); return; }
-                    JSONArray pr = new JSONArray(call("profiles?select=id,username,name,bio,avatar_url,badge,accent", null));
+                    JSONArray pr = new JSONArray(call("profiles?select=id,username,name,bio,avatar_url,badge,accent,role", null));
                     JSONArray it = new JSONArray(call("items?select=*&order=created_at.desc", null));
                     JSONObject authors = new JSONObject(), ids = new JSONObject();
                     for (int i = 0; i < pr.length(); i++) {
                         JSONObject p = pr.getJSONObject(i);
                         ids.put(p.getString("id"), p.getString("username"));
                         authors.put(p.getString("username"), new JSONObject().put("name", p.optString("name"))
-                            .put("bio", p.optString("bio")).put("avatar", p.optString("avatar_url")).put("badge", p.optString("badge")).put("accent", p.optString("accent")));
+                            .put("bio", p.optString("bio")).put("avatar", p.optString("avatar_url")).put("badge", p.optString("badge")).put("accent", p.optString("accent")).put("role", p.optString("role")));
                     }
                     JSONArray apps = new JSONArray();
                     for (int i = 0; i < it.length(); i++) {
@@ -485,6 +485,48 @@ public class MainActivity extends Activity {
                     call("rpc/set_badge", new JSONObject().put("p_username", who).put("p_badge", badge).toString());
                     toJs("onSaved(true,'')");
                 } catch (Exception e) { toJs("onSaved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
+            }).start();
+        }
+
+        /** Роли выдаёт только админ: остальным сервер не даст. */
+        @JavascriptInterface
+        public void setRole(final String who, final String role) {
+            new Thread(() -> {
+                try {
+                    call("rpc/set_role", new JSONObject().put("p_username", who).put("p_role", role).toString());
+                    toJs("onSaved(true,'')");
+                } catch (Exception e) { toJs("onSaved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
+            }).start();
+        }
+
+        /** Заявка на роль разработчика: пользователь шлёт, админ видит список. */
+        @JavascriptInterface
+        public void sendRequest(final String text) {
+            new Thread(() -> {
+                try {
+                    call("rpc/send_request", new JSONObject().put("p_text", text).toString());
+                    toJs("onReqSent(true,'')");
+                } catch (Exception e) { toJs("onReqSent(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void loadRequests() {
+            new Thread(() -> {
+                String r;
+                try { r = new JSONArray(call("dev_requests?select=text,profiles(username,name)", null)).toString(); }
+                catch (Exception e) { r = "[]"; }
+                toJs("onRequests(" + JSONObject.quote(r) + ")");
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void decideRequest(final String who, final boolean ok) {
+            new Thread(() -> {
+                try {
+                    call("rpc/decide_request", new JSONObject().put("p_username", who).put("p_ok", ok).toString());
+                    toJs("onReqSent(true,'')");
+                } catch (Exception e) { toJs("onReqSent(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
             }).start();
         }
 
