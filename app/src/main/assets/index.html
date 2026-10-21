@@ -20,7 +20,7 @@ svg{display:block}button{font:inherit;color:inherit;cursor:pointer}
 .b-dots .fx{background:radial-gradient(var(--outline) 1.3px,transparent 1.8px) 0 0/22px 22px;opacity:.3}
 .b-grid .fx{background:linear-gradient(var(--outline) 1px,transparent 1px) 0 0/30px 30px,linear-gradient(90deg,var(--outline) 1px,transparent 1px) 0 0/30px 30px;opacity:.16;-webkit-mask-image:linear-gradient(#000,transparent 90%)}
 .b-waves svg{position:absolute;left:0;bottom:0;width:100%;height:60%}
-\.b-dia .fx{background:var(--outline);opacity:.12;-webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><path d='M24 6l8 18-8 18-8-18z' fill='black'/></svg>") 0 0/48px 48px}
+.b-dia .fx{background:var(--outline);opacity:.12;-webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><path d='M24 6l8 18-8 18-8-18z' fill='black'/></svg>") 0 0/48px 48px}
 .view{position:fixed;inset:0;z-index:1;overflow-y:auto;padding:env(safe-area-inset-top) 0 120px;display:none}
 .view.on{display:block;animation:vi .28s cubic-bezier(.2,0,0,1)}
 @keyframes vi{from{opacity:0;transform:translateY(10px)}}
@@ -170,6 +170,23 @@ body.r2 .app,body.r2 .pc,body.r2 .post,body.r2 .bn,body.r2 .tile{border-radius:4
 body.r2 .fc{border-radius:48px!important}
 body.fs0 .view,body.fs0 #sheet,body.fs0 #nav{zoom:.9}
 body.fs2 .view,body.fs2 #sheet,body.fs2 #nav{zoom:1.12}
+/* порядок: плавающая нижняя панель, ровные кнопки, ничего не наезжает */
+#nav{left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));height:68px;padding:8px 6px;border-radius:34px;background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 10px 28px rgba(0,0,0,.3),0 0 0 1px color-mix(in srgb,var(--outline) 30%,transparent)}
+#nav button{justify-content:center;gap:2px}
+#nav .pill{width:52px;height:30px;border-radius:15px}
+.view{padding-bottom:150px}
+.fab{bottom:calc(112px + env(safe-area-inset-bottom))}
+#toast{bottom:calc(120px + env(safe-area-inset-bottom))}
+.glass{background:color-mix(in srgb,var(--card) 94%,transparent);-webkit-backdrop-filter:none;backdrop-filter:none}
+.search{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--sv)}
+.btn{width:calc(100% - 32px);margin:0 16px 10px}
+.sw{margin-bottom:18px}
+.tiles{grid-template-columns:repeat(3,1fr)}
+.tile{aspect-ratio:1/1.1}
+.app .nm,.pc .nm{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app .info,.pc .info{min-width:0}
+.app .au{overflow:hidden;white-space:nowrap}
+.app .ds{overflow-wrap:anywhere}
 </style></head><body>
 <div id="bg"></div>
 
