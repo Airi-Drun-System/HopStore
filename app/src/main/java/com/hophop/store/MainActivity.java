@@ -145,9 +145,20 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("hsBack()", v -> { if (!"true".equals(v)) finish(); });
     }
 
+    private String lastUrl;
+
     private final BroadcastReceiver done = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
             if (i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) != downloadId) return;
+            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            try (Cursor q = dm.query(new DownloadManager.Query().setFilterById(downloadId))) {
+                if (q != null && q.moveToFirst() && q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)) != DownloadManager.STATUS_SUCCESSFUL) {
+                    int why = q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
+                    Toast.makeText(MainActivity.this, "Не скачалось (код " + why + "), открываю ссылку в браузере", Toast.LENGTH_LONG).show();
+                    if (lastUrl != null) startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(lastUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    return;
+                }
+            }
             if (mode == APK) openInstaller();
             else if (mode == MC) openMinecraft();
             else Toast.makeText(MainActivity.this, "Сохранено в Загрузки", Toast.LENGTH_LONG).show();
@@ -718,7 +729,9 @@ public class MainActivity extends Activity {
 
         /** APK ставит, миры и паки Minecraft открывает в игре, остальное кладёт в Загрузки. */
         @JavascriptInterface
-        public void get(final String url, final String name) {
+        public void get(String rawUrl, final String name) {
+            final String url = rawUrl == null ? null : rawUrl.trim();
+            lastUrl = url;
             if (url != null && url.startsWith("site:https://")) {
                 runOnUiThread(() -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url.substring(5)))));
                 return;
