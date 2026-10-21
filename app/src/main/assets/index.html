@@ -150,6 +150,7 @@ body.na #nav,body.na .fab{display:none!important}
   <div id="upd"></div>
   <div id="featw"></div>
   <div class="chips" id="chips"></div>
+  <div class="chips" id="chips2"></div>
   <div class="list" id="list"></div>
   <div class="note" id="note"></div>
 </section>
@@ -271,7 +272,9 @@ function goIco(a){if(isSite(a))return ico('download');return ico(kind(a)=='bedro
 function cardHTML(a,i){return '<div class="app glass" data-i="'+apps.indexOf(a)+'" style="animation-delay:'+Math.min(i,8)*45+'ms"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+(hasUpd(a)?' <span class="fact ichip">Обновление</span>':'')+'</div><div class="au">'+who(a)+'</div><div class="meta">'+esc([a.version,a.size].concat((a.tags||[]).slice(0,2)).filter(Boolean).join(' · '))+'</div><div class="ds">'+esc(a.desc||'')+'</div></div><button class="go" aria-label="Скачать" data-i="'+apps.indexOf(a)+'">'+goIco(a)+'</button></div>'}
 function emptyHTML(t,i){return '<div class="empty"><div class="ic">'+ico(i||'app')+'</div>'+t+'</div>'}
 
-function chips(){
+var curTag='';
+function chips2(){var el=document.getElementById('chips2');if(!el)return;if(cur!='bedrock'&&cur!='java'){el.innerHTML='';curTag='';return}var ts=[];apps.forEach(function(a){if(kind(a)==cur)(a.tags||[]).forEach(function(t){if(ts.indexOf(t)<0)ts.push(t)})});el.innerHTML=ts.length?[['','Все теги']].concat(ts.slice(0,14).map(function(t){return[t,t]})).map(function(c){return '<button class="chip'+(curTag==c[0]?' on':'')+'" data-tg="'+esc(c[0])+'">'+esc(c[1])+'</button>'}).join(''):''}
+function chips(){chips2();
   var ts=[];apps.forEach(function(a){if(ts.indexOf(kind(a))<0)ts.push(kind(a))});
   var el=document.getElementById('chips');
   if(ts.length<2){el.innerHTML='';cur='';return}
@@ -279,7 +282,7 @@ function chips(){
 var FT=[['pc','tc'],['sc','pc'],['tc','sc']];
 function home(){
   var q=document.getElementById('q').value.trim().toLowerCase();
-  var l=apps.filter(function(a){return(!cur||kind(a)==cur)&&(!q||(a.name+' '+(a.desc||'')+' '+((a.tags||[]).join(' '))+' '+((A[a.author]||{}).name||'')).toLowerCase().indexOf(q)>=0)});
+  var l=apps.filter(function(a){return(!cur||kind(a)==cur)&&(!curTag||(a.tags||[]).indexOf(curTag)>=0)&&(!q||(a.name+' '+(a.desc||'')+' '+((a.tags||[]).join(' '))+' '+((A[a.author]||{}).name||'')).toLowerCase().indexOf(q)>=0)});
   var f=apps.filter(function(a){return a.featured}).concat(apps).filter(function(a,i,r){return r.indexOf(a)==i}).slice(0,5);
   document.getElementById('featw').innerHTML=(!q&&!cur&&apps.length>2)?'<h2>Новое</h2><div class="feat">'+f.map(function(a,i){var t=FT[i%3];return '<div class="fc" data-i="'+apps.indexOf(a)+'" style="background:linear-gradient(135deg,var(--'+t[0]+'),var(--'+t[1]+'));color:var(--on-'+t[0]+')"><div class="big">'+icon(a)+'</div><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a,18)+'</div></div>'}).join('')+'</div>':'';
   document.getElementById('list').innerHTML=l.length?l.map(cardHTML).join(''):emptyHTML(apps.length?'Ничего не найдено':'Пока здесь пусто');
@@ -300,7 +303,7 @@ function closeProf(){prof='';document.getElementById('v-prof').classList.remove(
 /* карточка приложения */
 function openSheet(i){
   var a=apps[i],u=A[a.author],mc=kind(a)=='bedrock';
-  document.getElementById('sheet').innerHTML='<div class="grab"></div>'+(a.banner?'<img class="bn sh-bn" src="'+esc(a.banner)+'" alt="">':'')+'<div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+(a.tags||[]).map(function(t){return '<span class="fact">'+esc(t)+'</span>'}).join('')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(isSite(a)?'Перейти на сайт':hasUpd(a)?'Обновить':mc?'Открыть в Minecraft':ext(fl(a))=='apk'||!ext(fl(a))?'Установить':'Скачать')+'</button>'+(canEdit(a)?'<button class="btn" style="margin-top:8px" data-ed="'+esc(a.id||a.name)+'">Изменить</button><button class="btn dng" data-rm="'+esc(a.id||a.name)+'">Убрать из магазина</button>':'');
+  document.getElementById('sheet').innerHTML='<div class="grab"></div>'+(a.banner?'<img class="bn sh-bn" src="'+esc(a.banner)+'" alt="">':'')+'<div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+(mcSub(a)?' · '+mcSub(a):'')+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+(a.tags||[]).map(function(t){return '<span class="fact">'+esc(t)+'</span>'}).join('')+'</div><div class="full">'+esc(a.desc||'')+'</div>'+(MCHINT[kind(a)]&&!isSite(a)?'<div class="note" style="margin:0 0 12px;text-align:left">'+MCHINT[kind(a)]+'</div>':'')+'<button class="btn pri" data-i="'+i+'">'+goIco(a)+(isSite(a)?'Перейти на сайт':hasUpd(a)?'Обновить':mc?'Открыть в Minecraft':kind(a)=='java'?'Скачать для ПК':ext(fl(a))=='apk'||!ext(fl(a))?'Установить':'Скачать')+'</button>'+(canEdit(a)?'<button class="btn" style="margin-top:8px" data-ed="'+esc(a.id||a.name)+'">Изменить</button><button class="btn dng" data-rm="'+esc(a.id||a.name)+'">Убрать из магазина</button>':'');
   document.body.classList.add('sh');
 }
 function closeSheet(){document.body.classList.remove('sh')}
@@ -359,7 +362,7 @@ document.addEventListener('click',function(e){
   if(b=t.closest('[data-own]'))return ownAct(b.dataset.own);
   if(b=t.closest('[data-rm]'))return rmApp(b);
   if(b=t.closest('#nav button'))return go(b.dataset.v);
-  if(b=t.closest('.chip')){cur=b.dataset.t;chips();return home()}
+  if(b=t.closest('.chip')){cur=b.dataset.t;curTag='';chips();return home()}
   if(b=t.closest('[data-th]')){S.theme=b.dataset.th;save();return apply()}
   if(b=t.closest('[data-ac]')){S.accent=b.dataset.ac;save();return apply()}
   if(b=t.closest('[data-bg]')){S.bg=b.dataset.bg;save();return apply()}
@@ -370,6 +373,18 @@ document.addEventListener('click',function(e){
   if(b=t.closest('.go,.btn[data-i]'))return fetchFile(+b.dataset.i,b);
   if(b=t.closest('.app,.fc'))return openSheet(+b.dataset.i);
 });
+
+/* Minecraft: подвид по расширению, версия и загрузчик из имени файла */
+var MCSUB={mcworld:'Мир',mcpack:'Пак',mcaddon:'Аддон',mctemplate:'Шаблон',jar:'Мод',litemod:'Мод',mrpack:'Сборка'};
+function mcSub(a){return MCSUB[ext(fl(a)).toLowerCase()]||''}
+function mcTags(n){var t=[],v=String(n).match(/1\.\d{1,2}(?:\.\d{1,2})?/),l=String(n).match(/neoforge|fabric|forge|quilt/i);if(v)t.push(v[0]);if(l)t.push(l[0].replace(/^./,function(c){return c.toUpperCase()}).replace('Neoforge','NeoForge'));return t}
+var MCHINT={bedrock:'Откроется прямо в Minecraft Bedrock, импорт начнётся сам.',java:'Для Minecraft Java на ПК: положи файл в папку mods (нужен тот же загрузчик и версия) или открой в лаунчере. На телефоне Java-моды не работают.'};
+var autoIcon='';
+function onApkMeta(m){var n=document.getElementById('u-n'),v=document.getElementById('u-v');if(n&&!n.value)n.value=m.label||'';if(v&&!v.value)v.value=m.version||'';pickedIc=true;var p=document.getElementById('pic');if(p)p.textContent='Значок взят из apk'}
+function onMeta(m){var n=document.getElementById('u-n');if(n&&!n.value&&m.title)n.value=m.title;if(m.image&&!pickedIc){autoIcon=m.image;var p=document.getElementById('pic');if(p)p.textContent='Значок взят с сайта'}}
+var metaT=0;
+document.addEventListener('input',function(e){if(e.target.id!='u-l')return;clearTimeout(metaT);var u=e.target.value.trim();if(!/^https:\/\/\S+\.\S+/.test(u))return;metaT=setTimeout(function(){if(window.Store)Store.fetchMeta(u)},700)});
+
 /* запросы к базе и картинки */
 var RQ={},IMGCB={},rqn=0,iv={};
 try{iv=JSON.parse(localStorage.iv||'{}')}catch(e){}
@@ -444,6 +459,7 @@ function makeCm(){
 }
 function extraClick(t){
   var b;
+  if(b=t.closest('[data-tg]')){curTag=b.dataset.tg;chips2();home();return true}
   if(b=t.closest('[data-upd]')){Store.get(b.dataset.upd,'HangarVault');return true}
   if(b=t.closest('[data-cm]')){openCm(b.dataset.cm);return true}
   if(t.closest('#cm-back')){closeCm();return true}
@@ -508,7 +524,7 @@ function ownAct(a){
 }
 function onSaved(ok,t){pacSet=false;ownerInfo();if(ok)setTimeout(drawOwn,0);var m=document.getElementById('own-msg');if(m)m.textContent=ok?'Сохранено':t;if(ok){load();if(prof)openProf(prof)}}
 function openUpload(id){
-  picked=false;pickedIc=false;pickedBn=false;editId=id||'';
+  autoIcon='';picked=false;pickedIc=false;pickedBn=false;editId=id||'';
   var a=editId?apps.filter(function(x){return(x.id||x.name)==editId})[0]:null;a=a||{};
   var ty=[['','Определить сам']].concat(Object.keys(TYPES).map(function(k){return[k,TYPES[k]]})).map(function(t){return '<option value="'+t[0]+'"'+(a.type==t[0]?' selected':'')+'>'+t[1]+'</option>'}).join('');
   document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">'+(editId?'Изменить запись':'Новая запись')+'</div><button class="btn" id="pick">'+ico('file')+(editId?'Заменить файл':'Выбрать файл')+'</button><div class="meta" id="pf" style="margin:8px 0 16px">'+(editId?'Файл можно не менять':'Файл не выбран (до 50 МБ)')+'</div>'+fld('Или ссылка (для больших файлов и чужих игр)','<input id="u-l" placeholder="https://" autocapitalize="none" value="'+esc(isSite(a)?fl(a):'')+'">')+'<label class="fl" style="flex-direction:row;gap:10px;align-items:center"><input type="checkbox" id="u-s"'+(isSite(a)?' checked':'')+' style="width:20px;height:20px"><span>Ссылка ведёт на сайт, а не на файл. Игрока перекинет на этот сайт.</span></label>'+'<button class="btn" id="pick-bn">'+ico('image')+'Баннер записи</button><div class="meta" id="pbn" style="margin:8px 0 16px">'+(a.banner?'Баннер уже есть, можно заменить':'Без баннера')+'</div><button class="btn" id="pick-ic">'+ico('image')+'Значок приложения</button><div class="meta" id="pic" style="margin:8px 0 16px">'+(a.icon?'Значок уже есть, можно заменить':'Без значка (по желанию, картинка)')+'</div>'+fld('Название','<input id="u-n" value="'+esc(a.name||'')+'">')+fld('Версия','<input id="u-v" placeholder="1.0" value="'+esc(a.version||'')+'">')+fld('Описание','<textarea id="u-d" rows="3">'+esc(a.desc||'')+'</textarea>')+fld('Теги через запятую','<input id="u-g" placeholder="1.21, Fabric" value="'+esc((a.tags||[]).join(', '))+'">')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+(editId?'Сохранить':'Опубликовать')+'</button>';
@@ -516,10 +532,10 @@ function openUpload(id){
 }
 var pickedIc=false,pickedBn=false;
 function onIconPicked(n){pickedIc=true;document.getElementById('pic').textContent=n}
-function onPicked(name,size){picked=true;document.getElementById('pf').textContent=name+' · '+fmt(size);var n=document.getElementById('u-n');if(n&&!n.value)n.value=name.replace(/\.[^.]*$/,'')}
+function onPicked(name,size){picked=true;var tg=document.getElementById('u-g');if(tg&&!tg.value&&/\.(mcworld|mcpack|mcaddon|mctemplate|jar|mrpack|litemod)$/i.test(name))tg.value=mcTags(name).join(', ');document.getElementById('pf').textContent=name+' · '+fmt(size);var n=document.getElementById('u-n');if(n&&!n.value)n.value=name.replace(/\.[^.]*$/,'')}
 function publish(){
-  var n=g('u-n'),l=g('u-l');if(!editId&&!picked&&!l){msg('Выбери файл или вставь ссылку');return}if(!n){msg('Введи название');return}
-  var o={name:n,version:g('u-v'),desc:g('u-d'),tags:g('u-g'),type:g('u-t'),newFile:picked&&!l,link:l,site:!!(document.getElementById('u-s')||{}).checked,newIcon:pickedIc,newBanner:pickedBn};
+  var a0=editId?apps.filter(function(x){return(x.id||x.name)==editId})[0]:null;var n=g('u-n'),l=g('u-l');if(!editId&&!picked&&!l){msg('Выбери файл или вставь ссылку');return}if(!n){msg('Введи название');return}
+  var o={name:n,version:g('u-v'),desc:g('u-d'),tags:g('u-g'),type:g('u-t'),newFile:picked&&!l,link:l,site:!!(document.getElementById('u-s')||{}).checked,newIcon:pickedIc,newBanner:pickedBn};if(!pickedIc&&autoIcon&&!(a0&&a0.icon))o.icon=autoIcon;
   if(editId){var a=apps.filter(function(x){return(x.id||x.name)==editId})[0]||{};o.id=editId;o.file=a.file||'';o.size=a.size||'';o.icon=a.icon||'';o.banner=a.banner||''}
   document.getElementById('pub').disabled=true;msg('Начинаю');
   Store.upload(JSON.stringify(o));
