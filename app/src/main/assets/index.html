@@ -208,6 +208,8 @@ body.fs2 .view,body.fs2 #sheet,body.fs2 #nav{zoom:1.12}
 .fact{border-radius:14px}
 .pg{border-radius:6px}
 .full{border-radius:22px}
+.fc .big img{width:100%;height:100%;object-fit:cover;display:block}
+.fc .big.img{right:18px;top:18px;width:76px;height:76px;opacity:1;transform:none;border-radius:22px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 </style></head><body>
 <div id="bg"></div>
 
@@ -356,7 +358,7 @@ function home(){
   var q=document.getElementById('q').value.trim().toLowerCase();
   var l=apps.filter(function(a){return(!cur||kind(a)==cur)&&(!curTag||(a.tags||[]).indexOf(curTag)>=0)&&(!q||(a.name+' '+(a.desc||'')+' '+((a.tags||[]).join(' '))+' '+((A[a.author]||{}).name||'')).toLowerCase().indexOf(q)>=0)});
   var f=apps.filter(function(a){return a.featured}).concat(apps).filter(function(a,i,r){return r.indexOf(a)==i}).slice(0,5);
-  document.getElementById('featw').innerHTML=(!q&&!cur&&apps.length>2)?'<h2>Новое</h2><div class="feat">'+f.map(function(a,i){var t=FT[i%3];return '<div class="fc" data-i="'+apps.indexOf(a)+'" style="background:linear-gradient(135deg,var(--'+t[0]+'),var(--'+t[1]+'));color:var(--on-'+t[0]+')"><div class="big">'+icon(a)+'</div><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a,18)+'</div></div>'}).join('')+'</div>':'';
+  document.getElementById('featw').innerHTML=(!q&&!cur&&apps.length>2)?'<h2>Новое</h2><div class="feat">'+f.map(function(a,i){var t=FT[i%3];return '<div class="fc" data-i="'+apps.indexOf(a)+'" style="background:linear-gradient(135deg,var(--'+t[0]+'),var(--'+t[1]+'));color:var(--on-'+t[0]+')"><div class="big'+(a.icon?' img':'')+'">'+icon(a)+'</div><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a,18)+'</div></div>'}).join('')+'</div>':'';
   document.getElementById('list').innerHTML=l.length?l.map(cardHTML).join(''):emptyHTML(apps.length?'Ничего не найдено':'Пока здесь пусто');
 }
 function authors(){
