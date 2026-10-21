@@ -1,5 +1,7 @@
 name: build
 on: [push, workflow_dispatch]
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -9,7 +11,18 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.7" }
-      - run: keytool -genkeypair -keystore ci.jks -storepass hopstore -keypass hopstore -alias hopstore -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Hangar Vault"
-      - run: gradle assembleRelease --no-daemon
+      # Постоянный ключ из секрета KS_B64, чтобы новые версии ставились поверх старых. Без секрета ключ временный.
+      - name: Ключ подписи
+        env:
+          KS_B64: ${{ secrets.KS_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > ci.jks
+          else keytool -genkeypair -keystore ci.jks -storepass hopstore -keypass hopstore -alias hopstore -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Hangar Vault"; fi
+      - run: gradle assembleRelease --no-daemon -PvCode=${{ github.run_number }}
+      - run: cp app/build/outputs/apk/release/*.apk HangarVault.apk
       - uses: actions/upload-artifact@v4
-        with: { name: HopStore-apk, path: app/build/outputs/apk/release/*.apk }
+        with: { name: HopStore-apk, path: HangarVault.apk }
+      - name: Релиз
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ github.run_number }}" HangarVault.apk --title "Hangar Vault ${{ github.run_number }}" --notes "Сборка ${{ github.run_number }}" --latest
