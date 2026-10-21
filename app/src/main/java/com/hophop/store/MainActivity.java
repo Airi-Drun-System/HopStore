@@ -120,6 +120,55 @@ public class MainActivity extends Activity {
         if (web != null) web.evaluateJavascript("window.setIns&&setIns(" + insTop + "," + insBottom + ")", null);
     }
 
+    /** Значок: срезаем ровные поля (прозрачные или одного цвета), центрируем и делаем квадрат 256x256. */
+    private File squareIcon(Uri u) {
+        try {
+            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            try (InputStream in = getContentResolver().openInputStream(u)) { android.graphics.BitmapFactory.decodeStream(in, null, o); }
+            int sample = 1;
+            while (Math.max(o.outWidth, o.outHeight) / sample > 1024) sample *= 2;
+            o = new android.graphics.BitmapFactory.Options(); o.inSampleSize = sample;
+            android.graphics.Bitmap b;
+            try (InputStream in = getContentResolver().openInputStream(u)) { b = android.graphics.BitmapFactory.decodeStream(in, null, o); }
+            if (b == null) return null;
+            int w = b.getWidth(), h = b.getHeight(), bg = b.getPixel(0, 0);
+            int top = 0, bot = h - 1, left = 0, right = w - 1;
+            while (top < bot && rowSame(b, top, bg)) top++;
+            while (bot > top && rowSame(b, bot, bg)) bot--;
+            while (left < right && colSame(b, left, bg, top, bot)) left++;
+            while (right > left && colSame(b, right, bg, top, bot)) right--;
+            int cw = right - left + 1, ch = bot - top + 1;
+            if (cw < w * 0.2f || ch < h * 0.2f) { left = 0; top = 0; cw = w; ch = h; }
+            int side = (int) (Math.max(cw, ch) * 1.08f);
+            android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas cv = new android.graphics.Canvas(out);
+            if (Color.alpha(bg) > 200) cv.drawColor(bg);
+            float k = 256f / side;
+            float dw = cw * k, dh = ch * k;
+            cv.drawBitmap(b, new android.graphics.Rect(left, top, left + cw, top + ch),
+                    new android.graphics.RectF((256 - dw) / 2, (256 - dh) / 2, (256 + dw) / 2, (256 + dh) / 2),
+                    new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG));
+            File f = new File(getCacheDir(), "icon-square.png");
+            try (OutputStream os = new FileOutputStream(f)) { out.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, os); }
+            return f;
+        } catch (Exception e) { return null; }
+    }
+
+    private static boolean near(int a, int b) {
+        if (Color.alpha(a) < 24 && Color.alpha(b) < 24) return true;
+        return Math.abs(Color.alpha(a) - Color.alpha(b)) < 24 && Math.abs(Color.red(a) - Color.red(b)) < 24
+                && Math.abs(Color.green(a) - Color.green(b)) < 24 && Math.abs(Color.blue(a) - Color.blue(b)) < 24;
+    }
+    private static boolean rowSame(android.graphics.Bitmap b, int y, int bg) {
+        for (int x = 0; x < b.getWidth(); x += 2) if (!near(b.getPixel(x, y), bg)) return false;
+        return true;
+    }
+    private static boolean colSame(android.graphics.Bitmap b, int x, int bg, int y0, int y1) {
+        for (int y = y0; y <= y1; y += 2) if (!near(b.getPixel(x, y), bg)) return false;
+        return true;
+    }
+
     /** Цвета Material You с обоев (Android 12+) для светлой и тёмной темы. */
     private String makePalette(boolean night) {
         String head = "{\"night\":" + night;
@@ -289,7 +338,12 @@ public class MainActivity extends Activity {
         }
         if (rq == ICON) {
             iconUri = u; iconMime = mime; iconName = name; iconSize = size;
-            toJs("onIconPicked(" + JSONObject.quote(name) + ")");
+            final Uri iu = u; final String inm = name;
+            new Thread(() -> {
+                File sq = squareIcon(iu);
+                if (sq != null) { iconUri = Uri.fromFile(sq); iconMime = "image/png"; iconName = "icon.png"; iconSize = sq.length(); }
+                toJs("onIconPicked(" + JSONObject.quote(inm) + ")");
+            }).start();
             return;
         }
         final Uri au = u; final String am = mime, an = name; final long as = size;
