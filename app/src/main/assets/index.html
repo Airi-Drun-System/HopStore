@@ -269,7 +269,7 @@ function openProf(id){
   var u=A[id];if(!u)return;prof=id;closeSheet();
   var l=apps.filter(function(a){return a.author==id});
   var el=document.getElementById('v-prof');
-  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph"'+(u.accent?' style="background:'+hsl(+u.accent,55,isDark()?24:88)+';border-radius:28px;margin:8px 16px;padding:20px 8px"':'')+'>'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div>'+(ME.admin?'<div class="chips">'+[['','Без значка']].concat(Object.keys(BD).map(function(k){return[k,BD[k].n]})).map(function(c){return '<button class="chip'+((u.badge||'')==c[0]?' on':'')+'" data-bd="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>':'')+'<h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
+  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph"'+(u.accent?' style="background:'+hsl(+u.accent,55,isDark()?24:88)+';border-radius:28px;margin:8px 16px;padding:20px 8px"':'')+'>'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div>'+(ME.admin?'<div class="chips">'+[['','Без значка']].concat(Object.keys(BD).map(function(k){return[k,BD[k].n]})).map(function(c){return '<button class="chip'+((u.badge||'')==c[0]?' on':'')+'" data-bd="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>':'')+(u.role?'<div class="meta" style="text-align:center">'+RL[u.role]+'</div>':'')+(ME.admin&&u.role!='admin'?'<div class="chips">'+['user','dev'].map(function(r){return '<button class="chip'+(u.role==r?' on':'')+'" data-role="'+r+'">'+RL[r]+'</button>'}).join('')+'</div>':'')+'<h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
   el.classList.add('on');el.scrollTop=0;
 }
 function closeProf(){prof='';document.getElementById('v-prof').classList.remove('on')}
@@ -302,7 +302,7 @@ function drawSet(){
 /* навигация */
 var NAV=[['home','Каталог','home'],['authors','Авторы','people'],['me','Профиль','user'],['set','Настройки','gear']];
 function drawNav(){document.getElementById('nav').innerHTML=NAV.map(function(n){return '<button data-v="'+n[0]+'" class="'+(tab==n[0]?'on':'')+'"><span class="pill">'+ico(n[2])+'</span>'+n[1]+'</button>'}).join('')}
-function go(v){closeProf();closeSheet();tab=v;if(v=='me')drawOwn();NAV.forEach(function(n){document.getElementById('v-'+n[0]).classList.toggle('on',n[0]==v)});drawNav();fab()}
+function go(v){closeProf();closeSheet();tab=v;if(v=='me'){drawOwn();if(window.Store)Store.loadRequests()}NAV.forEach(function(n){document.getElementById('v-'+n[0]).classList.toggle('on',n[0]==v)});drawNav();fab()}
 function hsBack(){if(document.body.classList.contains('sh')){closeSheet();return true}if(prof){closeProf();return true}if(tab!='home'){go('home');return true}return false}
 
 /* загрузка каталога */
@@ -327,6 +327,8 @@ document.addEventListener('click',function(e){
   if(t.closest('#help-ok'))return closeSheet();
   if(t.closest('#fab'))return openUpload();
   if(b=t.closest('[data-bd]'))return Store.setBadge(prof,b.dataset.bd);
+  if(b=t.closest('[data-req]'))return Store.decideRequest(b.dataset.u,b.dataset.req=='1');
+  if(b=t.closest('[data-role]'))return Store.setRole(prof,b.dataset.role);
   if(b=t.closest('[data-ed]'))return openUpload(b.dataset.ed);
   if(t.closest('#pick'))return Store.pick();
   if(t.closest('#pub'))return publish();
@@ -347,8 +349,9 @@ document.addEventListener('click',function(e){
 /* аккаунты, профили и загрузка файлов с телефона */
 var pac='',ME={in:false},OWN=false,picked=false,editId='',amode='in';
 function ownerInfo(){try{ME=JSON.parse(Store.me())}catch(e){ME={in:false}}OWN=!!ME.in;document.body.classList.toggle('na',!OWN);if(OWN)document.getElementById('v-auth').classList.remove('on')}
-function canEdit(a){return OWN&&(ME.admin||a.author==ME.username)}
-function fab(){document.getElementById('fab').style.display=(OWN&&tab=='home')?'flex':'none'}
+var RL={user:'Пользователь',dev:'Разработчик',admin:'Админ'};
+function canEdit(a){return OWN&&(ME.admin||(ME.dev&&a.author==ME.username))}
+function fab(){document.getElementById('fab').style.display=(OWN&&ME.dev&&tab=='home')?'flex':'none'}
 function g(i){var e=document.getElementById(i);return e?e.value.trim():''}
 function msg(t){var m=document.getElementById('pmsg');if(m)m.textContent=t}
 function fld(l,h){return '<label class="fl"><span>'+l+'</span>'+h+'</label>'}
@@ -365,13 +368,22 @@ function drawOwn(){
   var el=document.getElementById('s-own');if(!el)return;
   if(!OWN){el.innerHTML='';return}
   var u=A[ME.username]||{name:ME.name||ME.username,bio:ME.bio||'',avatar:ME.avatar,badge:''};if(u.accent==null)u.accent=ME.accent||'';u.accent=pac=(pacSet?pac:u.accent);
-  el.innerHTML='<div class="pc glass" style="cursor:default">'+av(ME.username,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">@'+esc(ME.username)+(ME.admin?' · админ':'')+'</div></div></div><div style="padding:8px 16px 0">'+fld('Имя','<input id="p-n" value="'+esc(u.name)+'">')+fld('О себе','<textarea id="p-b" rows="2">'+esc(u.bio||'')+'</textarea>')+'<div class="meta" style="margin:8px 0">Цвет профиля</div><div class="sw" id="p-ac">'+['','262','215','185','145','95','35','350'].map(function(h){return '<button data-pac="'+h+'" class="'+((u.accent||'')==h?'on':'')+'" style="background:'+(h?hsl(+h,55,isDark()?65:45):'var(--surface-var,#888)')+'">'+((u.accent||'')==h?ico('check'):'')+'</button>'}).join('')+'</div></div><button class="btn" data-own="photo" style="margin-bottom:8px">Сменить фото</button><button class="btn" data-own="page" style="margin-bottom:8px">Моя страница</button><button class="btn pri" data-own="save">Сохранить профиль</button><button class="btn" style="margin-top:8px" data-own="out">Выйти</button><div class="note" id="own-msg"></div>';
+  el.innerHTML='<div class="pc glass" style="cursor:default">'+av(ME.username,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">@'+esc(ME.username)+' · '+(ME.admin?'админ':ME.dev?'разработчик':'пользователь')+'</div></div></div><div style="padding:8px 16px 0">'+fld('Имя','<input id="p-n" value="'+esc(u.name)+'">')+fld('О себе','<textarea id="p-b" rows="2">'+esc(u.bio||'')+'</textarea>')+'<div class="meta" style="margin:8px 0">Цвет профиля</div><div class="sw" id="p-ac">'+['','262','215','185','145','95','35','350'].map(function(h){return '<button data-pac="'+h+'" class="'+((u.accent||'')==h?'on':'')+'" style="background:'+(h?hsl(+h,55,isDark()?65:45):'var(--surface-var,#888)')+'">'+((u.accent||'')==h?ico('check'):'')+'</button>'}).join('')+'</div></div><button class="btn" data-own="photo" style="margin-bottom:8px">Сменить фото</button><button class="btn" data-own="page" style="margin-bottom:8px">Моя страница</button><button class="btn pri" data-own="save">Сохранить профиль</button><button class="btn" style="margin-top:8px" data-own="out">Выйти</button>'+'<div id="req"></div>'+'<div class="note" id="own-msg"></div>';
 }
-var pacSet=false;
+var pacSet=false,reqs=[],myReq=false;
+function drawReq(){
+  var el=document.getElementById('req');if(!el||!OWN)return;
+  if(ME.admin){el.innerHTML='<h2>Заявки на разработчика</h2>'+(reqs.length?reqs.map(function(r){var p=r.profiles||{};return '<div class="full" style="margin:0 16px 12px"><b>'+esc(p.name||p.username)+'</b> @'+esc(p.username)+'<br>'+esc(r.text)+'<div style="display:flex;gap:8px;margin-top:8px"><button class="btn pri" data-req="1" data-u="'+esc(p.username)+'" style="flex:1">Принять</button><button class="btn" data-req="0" data-u="'+esc(p.username)+'" style="flex:1">Отклонить</button></div></div>'}).join(''):'<div class="note">Заявок нет</div>');return}
+  if(ME.dev){el.innerHTML='';return}
+  el.innerHTML='<h2>Стать разработчиком</h2><div class="note">Ты пока пользователь: можешь скачивать. Чтобы выкладывать приложения, расскажи о себе и что хочешь выкладывать, админ рассмотрит заявку.</div>'+(myReq?'<div class="note">Заявка отправлена, ждёт ответа админа.</div>':'<div style="padding:0 16px">'+fld('О себе и что будешь выкладывать','<textarea id="req-t" rows="4" placeholder="Кто ты, что делаешь, примеры (можно ссылки)"></textarea>')+'</div><button class="btn pri" data-own="req">Подать заявку</button>')+'<div class="note" id="req-msg"></div>';
+}
+function onRequests(j){try{reqs=JSON.parse(j)}catch(e){reqs=[]}myReq=!ME.admin&&reqs.length>0;drawReq()}
+function onReqSent(ok,t){if(!ok){var m=document.getElementById('req-msg');if(m)m.textContent=t;return}ownerInfo();Store.loadRequests();load()}
 function ownAct(a){
   if(a=='out'){Store.logout();A={};apps=[];ownerInfo();onNeedLogin();return}
   if(a=='photo'){Store.pickAvatar();return}
   if(a=='page'){openProf(ME.username);return}
+  if(a=='req'){var t=g('req-t');if(t.length<10){document.getElementById('req-msg').textContent='Напиши хотя бы пару предложений';return}document.getElementById('req-msg').textContent='Отправляю';Store.sendRequest(t);return}
   document.getElementById('own-msg').textContent='Сохраняю';Store.saveProfile(JSON.stringify({name:g('p-n'),bio:g('p-b'),accent:pac}));
 }
 function onSaved(ok,t){pacSet=false;ownerInfo();if(ok)setTimeout(drawOwn,0);var m=document.getElementById('own-msg');if(m)m.textContent=ok?'Сохранено':t;if(ok){load();if(prof)openProf(prof)}}
