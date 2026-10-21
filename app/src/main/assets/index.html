@@ -143,6 +143,8 @@ body.na #nav,body.na .fab{display:none!important}
 #v-cm{z-index:3;background:var(--surface)}
 
 /* анимации и форма */
+#toast{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom));z-index:9;transform:translate(-50%,20px);background:var(--on-surface);color:var(--surface);padding:12px 20px;border-radius:24px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s,transform .3s cubic-bezier(.2,0,0,1);max-width:86%;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
 .app,.pc,.post,.fc,.btn,.chip,.fact,.fl input,.fl textarea,.seg button,.tile,.sw button{transition:background-color .3s,color .3s,transform .22s cubic-bezier(.2,0,0,1),outline-color .25s,box-shadow .25s,filter .2s}
 .pc,.post,.fc{animation:in .45s cubic-bezier(.2,0,0,1) both}
 .app:nth-child(2),.pc:nth-child(2),.fc:nth-child(2){animation-delay:.04s}.app:nth-child(3),.pc:nth-child(3),.fc:nth-child(3){animation-delay:.08s}
@@ -215,6 +217,7 @@ body.fs2 .view,body.fs2 #sheet,body.fs2 #nav{zoom:1.12}
 <section class="view" id="v-auth" style="z-index:10;background:var(--surface)"></section>
 
 <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Добавить</button>
+<div id="toast"></div>
 <nav id="nav"></nav>
 <div id="scrim"></div><div id="sheet"></div>
 
@@ -337,10 +340,29 @@ function openSheet(i){
   document.body.classList.add('sh');
 }
 function closeSheet(){document.body.classList.remove('sh')}
+var dl=null,dlT=0;
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('on')},2500)}
+function paintDl(){
+  document.querySelectorAll('.go[data-i],.btn.pri[data-i]').forEach(function(b){
+    var a=apps[+b.dataset.i];if(!a)return;var me=dl&&dl.k==(a.id||a.name),big=b.classList.contains('btn');
+    if(big){if(me){b.dataset.t0=b.dataset.t0||b.innerHTML;b.innerHTML=(dl.p>=0?dl.p+'%':'...')+' · отменить';b.style.background='linear-gradient(90deg,var(--primary) '+Math.max(dl.p,0)+'%,var(--sc) 0)';b.style.color='var(--on-sc)'}else if(b.dataset.t0){b.innerHTML=b.dataset.t0;delete b.dataset.t0;b.style.background=b.style.color=''}return}
+    b.style.opacity=dl&&!me?.45:'';
+    if(me){b.style.background='conic-gradient(var(--on-primary) '+Math.max(dl.p,3)*3.6+'deg,var(--primary) 0)';b.style.color='var(--primary)';b.innerHTML='<span style="display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--pc);font-size:12px;font-weight:700">'+(dl.p>=0?dl.p:'..')+'</span>'}
+    else if(b.dataset.dl){b.style.background=b.style.color='';b.innerHTML=goIco(a);delete b.dataset.dl}
+    if(me)b.dataset.dl=1;
+  });
+}
+function onDl(k,p,s){
+  if(s=='run'||s=='wait'){dl={k:k,p:p,s:s};if(!dlT)dlT=setInterval(paintDl,300)}
+  else{dl=null;clearInterval(dlT);dlT=0;if(s=='done')toast('Скачано');else if(s=='cancel')toast('Загрузка отменена')}
+  paintDl();
+}
 function fetchFile(i,btn){
   var a=apps[i],f=a.file||a.apk;if(!f||!window.Store)return;
-  markVer(a);Store.get(f,a.id||a.name);
-  if(btn&&btn.classList.contains('go')){btn.classList.add('busy');btn.innerHTML=ico('spin');setTimeout(function(){btn.classList.remove('busy');btn.innerHTML=goIco(a)},3000)}
+  var k=a.id||a.name;
+  if(dl){if(btn&&btn.classList.contains('btn')&&dl.k==k)Store.cancel();else toast(dl.k==k?'Уже скачивается':'Дождись окончания текущей загрузки');return}
+  markVer(a);Store.get(f,k);
+  if(isSite(a)&&btn&&btn.classList.contains('go')){btn.classList.add('busy');btn.innerHTML=ico('spin');setTimeout(function(){btn.classList.remove('busy');btn.innerHTML=goIco(a)},3000)}
 }
 
 /* настройки */
@@ -579,7 +601,7 @@ function onUploadProgress(p){msg('Загрузка '+p+'%');var i=document.getEl
 function onUploadStage(t){msg(t)}
 function onUploadDone(ok,t){if(ok){closeSheet();load();document.getElementById('note').textContent='Опубликовано.'}else{msg(t);var b=document.getElementById('pub');if(b)b.disabled=false}}
 function rmApp(b){if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Нажми ещё раз, чтобы убрать';return}var a=apps.filter(function(x){return(x.id||x.name)==b.dataset.rm})[0]||{};Store.remove(b.dataset.rm,a.file||'')}
-function onRemoved(ok,t){closeSheet();if(ok)load();else document.getElementById('note').textContent=t}
+function onRemoved(ok,t){closeSheet();if(ok){load();toast('Удалено')}else toast('Не удалилось: '+t)}
 function openHelp(){
   var st=[['Загрузить файл','Нажми плюс на главной, выбери файл с телефона: APK, мир или мод для Minecraft, jar. Тип определится сам. Размер до 50 МБ.'],['Большой файл или ссылка','Если файл больше 50 МБ, положи его в облако и вставь ссылку в поле «Или ссылка на файл». Ссылка должна начинаться с https://. Если она ведёт прямо на файл (в браузере он сразу скачивается), игрок скачает его в магазине. Если это страница сайта, например официальный сайт игры, поставь галочку «Ссылка ведёт на сайт»: по кнопке игрока перекинет туда.'],['Значок приложения','Кнопка «Значок приложения» в форме загрузки: выбери картинку. Её увидят в каталоге и в карточке.'],['Свой профиль','Вкладка «Профиль»: имя, о себе, фото, цвет профиля. Ник менять нельзя.'],['Скачать и открыть','Нажми на карточку. APK установится, мир или мод Bedrock откроется в Minecraft, остальное скачается в загрузки.']];
   document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Как пользоваться</div>'+st.map(function(x,i){return '<div class="full" style="margin-bottom:14px"><b>'+(i+1)+'. '+x[0]+'</b><br>'+x[1]+'</div>'}).join('')+'<button class="btn pri" id="help-ok">Понятно</button>';
