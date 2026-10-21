@@ -7,8 +7,8 @@ android {
         applicationId 'com.hophop.store'
         minSdk 26
         targetSdk 34
-        versionCode (project.findProperty('vCode') ?: '1').toInteger()
-        versionName "1.${project.findProperty('vCode') ?: '0'}"
+        versionCode = (project.findProperty('vCode') ?: '1') as Integer
+        versionName = "1." + (project.findProperty('vCode') ?: '0')
     }
     signingConfigs {
         release {
