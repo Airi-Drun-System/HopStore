@@ -148,6 +148,11 @@ public class MainActivity extends Activity {
     private String lastUrl, dlKey;
     private volatile boolean dlBusy;
 
+    /** Один человек = одно скачивание: сервер считает по паре (запись, пользователь). */
+    private void countDl(String id) {
+        try { call("rpc/count_download", new JSONObject().put("p_id", id).toString()); } catch (Exception ignored) { }
+    }
+
     /** Раз в 0,4 с шлёт странице процент загрузки; в конце состояние done/fail/cancel. */
     private void watchDownload(final long id, final String key) {
         new Thread(() -> {
@@ -170,6 +175,7 @@ public class MainActivity extends Activity {
                 }
             } catch (Exception ignored) { }
             dlBusy = false;
+            if (end.equals("done")) countDl(key);
             toJs("onDl(" + JSONObject.quote(key) + ",100,'" + end + "')");
         }).start();
     }
@@ -527,7 +533,7 @@ public class MainActivity extends Activity {
                         JSONObject o = it.getJSONObject(i);
                         apps.put(new JSONObject().put("id", o.getString("id")).put("name", o.optString("name"))
                             .put("author", ids.optString(o.optString("author"), "")).put("type", o.optString("type"))
-                            .put("version", o.optString("version")).put("size", o.optString("size"))
+                            .put("version", o.optString("version")).put("size", o.optString("size")).put("dl", o.optInt("dl", 0))
                             .put("desc", o.optString("description")).put("tags", o.optJSONArray("tags") == null ? new JSONArray() : o.getJSONArray("tags"))
                             .put("file", o.optString("file_url")).put("icon", o.optString("icon_url")).put("banner", o.optString("banner_url")));
                     }
@@ -762,6 +768,7 @@ public class MainActivity extends Activity {
             lastUrl = url;
             if (url != null && url.startsWith("site:https://")) {
                 runOnUiThread(() -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url.substring(5)))));
+                new Thread(() -> countDl(name)).start();
                 return;
             }
             if (url == null || !url.startsWith("https://")) { toast("Неверная ссылка"); return; }
