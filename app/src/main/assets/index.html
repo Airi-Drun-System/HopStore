@@ -141,6 +141,33 @@ body.na #nav,body.na .fab{display:none!important}
 .upd .btn{margin:0;flex:none;height:40px}
 .ichip{background:var(--tc);color:var(--on-tc)}
 #v-cm{z-index:3;background:var(--surface)}
+
+/* анимации и форма */
+.app,.pc,.post,.fc,.btn,.chip,.fact,.fl input,.fl textarea,.seg button,.tile,.sw button{transition:background-color .3s,color .3s,transform .22s cubic-bezier(.2,0,0,1),outline-color .25s,box-shadow .25s,filter .2s}
+.pc,.post,.fc{animation:in .45s cubic-bezier(.2,0,0,1) both}
+.app:nth-child(2),.pc:nth-child(2),.fc:nth-child(2){animation-delay:.04s}.app:nth-child(3),.pc:nth-child(3),.fc:nth-child(3){animation-delay:.08s}
+.app:nth-child(4),.pc:nth-child(4),.fc:nth-child(4){animation-delay:.12s}.app:nth-child(5),.pc:nth-child(5){animation-delay:.16s}
+.app:nth-child(6),.pc:nth-child(6){animation-delay:.2s}.app:nth-child(n+7),.pc:nth-child(n+7){animation-delay:.24s}
+.app:active,.pc:active,.fc:active{transform:scale(.98)}
+.btn:active,.chip:active,.seg button:active,.tile:active,.sw button:active{transform:scale(.95)}
+.sw button.on{outline-color:var(--on-surface)}
+.sw button{outline:3px solid transparent;outline-offset:2px}
+#v-prof.on{animation:pi .34s cubic-bezier(.2,0,0,1)}
+@keyframes pi{from{opacity:0;transform:translateX(28px)}}
+#nav button{transition:opacity .25s,transform .2s}#nav button:active{transform:scale(.92)}
+#nav button.on svg{animation:bump .4s cubic-bezier(.3,1.5,.5,1)}
+@keyframes bump{from{transform:scale(.7)}}
+#sheet{transition:transform .42s cubic-bezier(.2,.9,.25,1)}
+.cc{position:relative;overflow:hidden;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)!important}
+.cc input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+body.noanim *,body.noanim *::before{animation:none!important;transition:none!important}
+body.r0 .app,body.r0 .pc,body.r0 .fc,body.r0 .post,body.r0 .bn,body.r0 .tile,body.r0 .pimg,body.r0 .search{border-radius:6px!important}
+body.r0 .btn,body.r0 .go,body.r0 .fab,body.r0 #sheet .btn{border-radius:8px!important}
+body.r0 #sheet{border-radius:12px 12px 0 0!important}
+body.r2 .app,body.r2 .pc,body.r2 .post,body.r2 .bn,body.r2 .tile{border-radius:40px!important}
+body.r2 .fc{border-radius:48px!important}
+body.fs0 .view,body.fs0 #sheet,body.fs0 #nav{zoom:.9}
+body.fs2 .view,body.fs2 #sheet,body.fs2 #nav{zoom:1.12}
 </style></head><body>
 <div id="bg"></div>
 
@@ -174,6 +201,9 @@ body.na #nav,body.na .fab{display:none!important}
   <h2>Профиль</h2><div id="s-own"></div>
   <h2>Тема</h2><div class="seg" id="s-theme"></div>
   <h2>Цвет</h2><div class="sw" id="s-acc"></div>
+  <h2>Форма</h2><div class="seg" id="s-r"></div>
+  <h2>Размер текста</h2><div class="seg" id="s-f"></div>
+  <h2>Анимации</h2><div class="seg" id="s-a"></div>
   <h2>Фон</h2><div class="tiles" id="s-bg"></div>
   <h2>Каталог</h2>
   <button class="btn" id="refresh"></button><button class="btn" data-help="1">Как пользоваться</button>
@@ -237,6 +267,7 @@ function hsl(h,s,l){return 'hsl('+((h%360+360)%360)+','+s+'%,'+l+'%)'}
 function mk(h,d){return d?{primary:hsl(h,90,82),onPrimary:hsl(h,60,20),pc:hsl(h,40,30),onPc:hsl(h,100,92),sc:hsl(h,18,30),onSc:hsl(h,40,90),tc:hsl(h+55,28,30),onTc:hsl(h+55,90,92),surface:hsl(h,14,8),onSurface:hsl(h,15,90),sv:hsl(h,10,17),outline:hsl(h,8,60),card:hsl(h,12,13)}:{primary:hsl(h,45,44),onPrimary:'#fff',pc:hsl(h,100,92),onPc:hsl(h,80,15),sc:hsl(h,35,90),onSc:hsl(h,30,15),tc:hsl(h+55,90,91),onTc:hsl(h+55,60,16),surface:hsl(h,100,99),onSurface:hsl(h,12,12),sv:hsl(h,25,92),outline:hsl(h,8,47),card:hsl(h,40,95)}}
 var S={theme:'auto',accent:P.sys?'sys':'262',bg:'aurora'};
 try{var sv=JSON.parse(localStorage.getItem('hs')||'{}');for(var k in sv)S[k]=sv[k]}catch(e){}
+document.addEventListener('change',function(e){if(e.target.id!='cc')return;var h=e.target.value,r=parseInt(h.substr(1,2),16)/255,g=parseInt(h.substr(3,2),16)/255,b=parseInt(h.substr(5,2),16)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,H=0;if(d){H=mx==r?((g-b)/d)%6:mx==g?(b-r)/d+2:(r-g)/d+4;H=Math.round(((H*60)+360)%360)}S.accent=String(H||1);save();apply()});
 function save(){try{localStorage.setItem('hs',JSON.stringify(S))}catch(e){}}
 function isDark(){return S.theme=='dark'||(S.theme=='auto'&&(P.night!=null?P.night:matchMedia('(prefers-color-scheme: dark)').matches))}
 
@@ -253,6 +284,7 @@ function apply(){
   for(var k in M)r.style.setProperty('--'+M[k],c[k]);
   document.getElementById('bg').innerHTML=bgHTML(S.bg);
   try{var m=getComputedStyle(document.body).backgroundColor.match(/\d+/g);Store.bars('#'+m.slice(0,3).map(function(x){return('0'+(+x).toString(16)).slice(-2)}).join(''),d)}catch(e){}
+  var b=document.body.classList;b.remove('r0','r2','fs0','fs2','noanim');if(S.r=='0'||S.r=='2')b.add('r'+S.r);if(S.f=='0'||S.f=='2')b.add('fs'+S.f);if(S.an=='0')b.add('noanim');
   drawSet();
 }
 
@@ -318,7 +350,10 @@ function drawSet(){
   var hs=[262,215,185,145,95,35,350],d=isDark(),sw='';
   if(P.sys)sw+='<button data-ac="sys" class="'+(S.accent=='sys'?'on':'')+'" style="background:conic-gradient('+P.sys.light.primary+','+P.sys.light.tc+','+P.sys.light.pc+','+P.sys.light.primary+')">'+(S.accent=='sys'?ico('check'):'')+'</button>';
   hs.forEach(function(h){sw+='<button data-ac="'+h+'" class="'+(S.accent==h?'on':'')+'" style="background:'+hsl(h,55,d?65:45)+'">'+(S.accent==h?ico('check'):'')+'</button>'});
+  sw+='<label class="cc" title="Свой цвет" style="width:48px;height:48px;border-radius:50%"><input type="color" id="cc" value="#6750a4"></label>';
   document.getElementById('s-acc').innerHTML=sw;
+  function sg(id,k,o){document.getElementById(id).innerHTML=o.map(function(x){return '<button data-st="'+k+':'+x[0]+'" class="'+((S[k]||x[3])==x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')}
+  sg('s-r','r',[['0','Острые'],['1','Обычные','', '1'],['2','Круглые']]);sg('s-f','f',[['0','Мелкий'],['1','Обычный','','1'],['2','Крупный']]);sg('s-a','an',[['1','Вкл','','1'],['0','Выкл']]);
   document.getElementById('s-bg').innerHTML=Object.keys(BGS).map(function(k){return '<button class="tile'+(S.bg==k?' on':'')+'" data-bg="'+k+'">'+bgHTML(k)+(S.bg==k?'<span class="ck">'+ico('check')+'</span>':'')+'<span class="tn">'+BGS[k]+'</span></button>'}).join('');
   document.getElementById('refresh').innerHTML=ico('refresh')+'Обновить список';
 }
@@ -362,6 +397,7 @@ document.addEventListener('click',function(e){
   if(b=t.closest('[data-rm]'))return rmApp(b);
   if(b=t.closest('#nav button'))return go(b.dataset.v);
   if(b=t.closest('.chip')){cur=b.dataset.t;curTag='';chips();return home()}
+  if(b=t.closest('[data-st]')){var q=b.dataset.st.split(':');S[q[0]]=q[1];save();return apply()}
   if(b=t.closest('[data-th]')){S.theme=b.dataset.th;save();return apply()}
   if(b=t.closest('[data-ac]')){S.accent=b.dataset.ac;save();return apply()}
   if(b=t.closest('[data-bg]')){S.bg=b.dataset.bg;save();return apply()}
