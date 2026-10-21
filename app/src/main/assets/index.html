@@ -210,6 +210,14 @@ body.fs2 .view,body.fs2 #sheet,body.fs2 #nav{zoom:1.12}
 .full{border-radius:22px}
 .fc .big img{width:100%;height:100%;object-fit:cover;display:block}
 .fc .big.img{right:18px;top:18px;width:76px;height:76px;opacity:1;transform:none;border-radius:22px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+/* быстрый фон: градиенты вместо размытия, двигается только слоем */
+.b-aurora i{filter:none;will-change:transform;opacity:.7}
+.b-aurora i:nth-child(1){background:radial-gradient(closest-side,var(--primary),transparent)!important;opacity:.45}
+.b-aurora i:nth-child(2){background:radial-gradient(closest-side,var(--tc),transparent)!important}
+.b-aurora i:nth-child(3){background:radial-gradient(closest-side,var(--pc),transparent)!important}
+.tile .b-aurora i{animation:none}
+#bg{contain:strict;transform:translateZ(0)}
+.view{-webkit-overflow-scrolling:touch}
 </style></head><body>
 <div id="bg"></div>
 
