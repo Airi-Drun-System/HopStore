@@ -50,7 +50,7 @@ public class MainActivity extends Activity {
     private File dlFile;
     private int mode = OTHER;
     private boolean waitingPerm;
-    private static final int PICK = 77, AVATAR = 78, ICON = 79;
+    private static final int PICK = 77, AVATAR = 78, ICON = 79, IMG = 80;
     private static final long MAX_UPLOAD = 52428800L;
     private String base = "", anon = "";
 
@@ -58,6 +58,8 @@ public class MainActivity extends Activity {
     private Uri pickedUri;
     private String pickedName = "", pickedMime = "application/octet-stream";
     private long pickedSize = -1;
+    private String imgTag = "";
+    private final java.util.Map<String, Object[]> imgs = new java.util.HashMap<>();
     private Uri iconUri;
     private String iconMime = "image/png", iconName = "icon.png";
     private long iconSize = -1;
@@ -186,7 +188,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int rq, int rc, Intent d) {
         super.onActivityResult(rq, rc, d);
-        if ((rq != PICK && rq != AVATAR && rq != ICON) || rc != RESULT_OK || d == null || d.getData() == null) return;
+        if ((rq != PICK && rq != AVATAR && rq != ICON && rq != IMG) || rc != RESULT_OK || d == null || d.getData() == null) return;
         Uri u = d.getData();
         String mime = getContentResolver().getType(u), name = "file";
         long size = -1;
@@ -201,6 +203,11 @@ public class MainActivity extends Activity {
         if (rq == PICK) {
             pickedUri = u; pickedMime = mime; pickedName = name; pickedSize = size;
             toJs("onPicked(" + JSONObject.quote(name) + "," + Math.max(size, 0) + ")");
+            return;
+        }
+        if (rq == IMG) {
+            imgs.put(imgTag, new Object[]{u, mime, name, size});
+            toJs("onImgPicked(" + JSONObject.quote(imgTag) + "," + JSONObject.quote(name) + ")");
             return;
         }
         if (rq == ICON) {
@@ -326,7 +333,13 @@ public class MainActivity extends Activity {
 
     private void doUpload(JSONObject f) throws Exception {
         final String editId = f.optString("id");
-        String icon = f.optString("icon");
+        String icon = f.optString("icon"), banner = f.optString("banner");
+        if (f.optBoolean("newBanner") && imgs.get("ibanner") != null) {
+            Object[] g = imgs.get("ibanner");
+            String oldB = banner;
+            banner = putFile((Uri) g[0], (String) g[1], (String) g[2], (Long) g[3], "banner");
+            if (!oldB.isEmpty()) dropFile(oldB);
+        }
         if (f.optBoolean("newIcon") && iconUri != null) {
             String oldIcon = icon;
             icon = putFile(iconUri, iconMime, iconName, iconSize, "icon");
@@ -350,11 +363,11 @@ public class MainActivity extends Activity {
         if (editId.isEmpty()) {
             call("items", new JSONObject().put("name", f.getString("name")).put("version", f.optString("version"))
                 .put("description", f.optString("desc")).put("tags", tags).put("type", f.optString("type"))
-                .put("file_url", url).put("size", size).put("icon_url", icon).toString());
+                .put("file_url", url).put("size", size).put("icon_url", icon).put("banner_url", banner).toString());
         } else {
             call("rpc/update_item", new JSONObject().put("p_id", editId).put("p_name", f.getString("name"))
                 .put("p_version", f.optString("version")).put("p_desc", f.optString("desc")).put("p_tags", tags)
-                .put("p_type", f.optString("type")).put("p_file", url).put("p_size", size).put("p_icon", icon).toString());
+                .put("p_type", f.optString("type")).put("p_file", url).put("p_size", size).put("p_icon", icon).put("p_banner", banner).toString());
             if (oldUrl != null && !oldUrl.equals(url)) dropFile(oldUrl);
         }
     }
@@ -427,14 +440,14 @@ public class MainActivity extends Activity {
                 String text; boolean cached = false;
                 try {
                     if (!loggedIn()) { toJs("onNeedLogin()"); return; }
-                    JSONArray pr = new JSONArray(call("profiles?select=id,username,name,bio,avatar_url,badge,accent,role", null));
+                    JSONArray pr = new JSONArray(call("profiles?select=id,username,name,bio,avatar_url,badge,accent,role,banner_url", null));
                     JSONArray it = new JSONArray(call("items?select=*&order=created_at.desc", null));
                     JSONObject authors = new JSONObject(), ids = new JSONObject();
                     for (int i = 0; i < pr.length(); i++) {
                         JSONObject p = pr.getJSONObject(i);
                         ids.put(p.getString("id"), p.getString("username"));
                         authors.put(p.getString("username"), new JSONObject().put("name", p.optString("name"))
-                            .put("bio", p.optString("bio")).put("avatar", p.optString("avatar_url")).put("badge", p.optString("badge")).put("accent", p.optString("accent")).put("role", p.optString("role")));
+                            .put("bio", p.optString("bio")).put("avatar", p.optString("avatar_url")).put("badge", p.optString("badge")).put("accent", p.optString("accent")).put("role", p.optString("role")).put("banner", p.optString("banner_url")));
                     }
                     JSONArray apps = new JSONArray();
                     for (int i = 0; i < it.length(); i++) {
@@ -443,7 +456,7 @@ public class MainActivity extends Activity {
                             .put("author", ids.optString(o.optString("author"), "")).put("type", o.optString("type"))
                             .put("version", o.optString("version")).put("size", o.optString("size"))
                             .put("desc", o.optString("description")).put("tags", o.optJSONArray("tags") == null ? new JSONArray() : o.getJSONArray("tags"))
-                            .put("file", o.optString("file_url")).put("icon", o.optString("icon_url")));
+                            .put("file", o.optString("file_url")).put("icon", o.optString("icon_url")).put("banner", o.optString("banner_url")));
                     }
                     text = new JSONObject().put("authors", authors).put("apps", apps).toString();
                     try (FileOutputStream fo = new FileOutputStream(cache)) { fo.write(text.getBytes("UTF-8")); }
@@ -464,7 +477,7 @@ public class MainActivity extends Activity {
                     JSONObject p = new JSONObject(json);
                     String nm = p.optString("name").trim();
                     call("rpc/update_profile", new JSONObject().put("p_name", nm.isEmpty() ? prefs().getString("username", "") : nm)
-                        .put("p_bio", p.optString("bio")).put("p_accent", p.optString("accent")).toString());
+                        .put("p_bio", p.optString("bio")).put("p_accent", p.optString("accent")).put("p_banner", p.has("banner") ? p.optString("banner") : null).toString());
                     loadProfile();
                     toJs("onSaved(true,'')");
                 } catch (Exception e) { toJs("onSaved(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
@@ -527,6 +540,62 @@ public class MainActivity extends Activity {
                     call("rpc/decide_request", new JSONObject().put("p_username", who).put("p_ok", ok).toString());
                     toJs("onReqSent(true,'')");
                 } catch (Exception e) { toJs("onReqSent(false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")"); }
+            }).start();
+        }
+
+        /** Универсальный запрос к базе: GET, POST или DELETE. Ответ приходит в onRest(id, ok, текст). */
+        @JavascriptInterface
+        public void rest(final String id, final String method, final String path, final String body) {
+            new Thread(() -> {
+                try {
+                    if (!method.matches("GET|POST|DELETE")) throw new Exception("Метод не поддерживается");
+                    String[] r = http(method, base + "/rest/v1/" + path, body.isEmpty() ? null : body, "application/json", true);
+                    if (!r[0].startsWith("2")) throw new Exception(errText(r));
+                    toJs("onRest(" + JSONObject.quote(id) + ",true," + JSONObject.quote(r[1]) + ")");
+                } catch (Exception e) {
+                    toJs("onRest(" + JSONObject.quote(id) + ",false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")");
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void pickImage(final String tag) {
+            imgTag = tag;
+            runOnUiThread(() -> startActivityForResult(
+                new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*"), IMG));
+        }
+
+        /** Заливает выбранную по тегу картинку и отвечает в onRest(id, ok, ссылка). */
+        @JavascriptInterface
+        public void uploadImage(final String tag, final String id) {
+            new Thread(() -> {
+                try {
+                    Object[] g = imgs.get(tag);
+                    if (g == null) throw new Exception("Картинка не выбрана");
+                    String url = putFile((Uri) g[0], (String) g[1], (String) g[2], (Long) g[3], "img");
+                    toJs("onRest(" + JSONObject.quote(id) + ",true," + JSONObject.quote(url) + ")");
+                } catch (Exception e) {
+                    toJs("onRest(" + JSONObject.quote(id) + ",false," + JSONObject.quote(String.valueOf(e.getMessage())) + ")");
+                }
+            }).start();
+        }
+
+        /** Есть ли новая версия самого магазина: смотрим последний релиз на GitHub. */
+        @JavascriptInterface
+        public void checkUpdate() {
+            new Thread(() -> {
+                try {
+                    HttpURLConnection c = (HttpURLConnection) new URL("https://api.github.com/repos/Airi-Drun-System/HopStore/releases/latest").openConnection();
+                    c.setConnectTimeout(10000); c.setReadTimeout(15000);
+                    c.setRequestProperty("User-Agent", "HangarVault");
+                    if (c.getResponseCode() != 200) return;
+                    JSONObject j = new JSONObject(readAll(c.getInputStream()));
+                    int remote = Integer.parseInt(j.getString("tag_name").replaceAll("[^0-9]", ""));
+                    int mine = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+                    JSONArray as = j.getJSONArray("assets");
+                    if (remote > mine && as.length() > 0)
+                        toJs("onUpdate(" + remote + "," + JSONObject.quote(as.getJSONObject(0).getString("browser_download_url")) + ")");
+                } catch (Exception ignored) { }
             }).start();
         }
 
