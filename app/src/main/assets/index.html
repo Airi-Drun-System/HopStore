@@ -127,17 +127,39 @@ body.sh #scrim{opacity:1;pointer-events:auto}body.sh #sheet{transform:none}
 #sheet .btn.dng{background:none;color:#d32f2f;margin-top:8px;height:48px}
 #sheet .btn:disabled{opacity:.5}
 body.na #nav,body.na .fab{display:none!important}
+.bn{display:block;width:calc(100% - 32px);margin:8px 16px;height:128px;object-fit:cover;border-radius:24px}
+.sh-bn{width:100%;margin:0 0 16px;height:120px}
+.post{margin:0 16px 12px;padding:16px;border-radius:24px}
+.post .au{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.pimg{display:block;width:100%;max-height:320px;object-fit:cover;border-radius:16px;margin-top:8px}
+.prow{display:flex;gap:8px;margin-top:12px}
+.msgs{max-height:48vh;overflow-y:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:8px}
+.msg{align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px;background:var(--sv);word-break:break-word}
+.msg.me{align-self:flex-end;background:var(--pc);color:var(--on-pc)}
+.msg .meta{font-size:11px;opacity:.7}.msg a{text-decoration:underline}
+.upd{display:flex;align-items:center;gap:12px;margin:0 16px 12px;padding:12px 16px;border-radius:24px;justify-content:space-between}
+.upd .btn{margin:0;flex:none;height:40px}
+.ichip{background:var(--tc);color:var(--on-tc)}
+#v-cm{z-index:3;background:var(--surface)}
 </style></head><body>
 <div id="bg"></div>
 
 <section class="view on" id="v-home">
   <header><h1>Hangar Vault</h1><div class="sub" id="cnt">Загрузка</div></header>
   <div class="search"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="q" placeholder="Поиск" autocomplete="off"></div>
+  <div id="upd"></div>
   <div id="featw"></div>
   <div class="chips" id="chips"></div>
   <div class="list" id="list"></div>
   <div class="note" id="note"></div>
 </section>
+
+<section class="view" id="v-com">
+  <header><h1>Сообщества</h1><div class="sub">Посты, чаты и форумы</div></header>
+  <div style="height:16px"></div><div id="cmlist"></div>
+</section>
+
+<section class="view" id="v-cm"></section>
 
 <section class="view" id="v-authors">
   <header><h1>Авторы</h1><div class="sub">Кто выкладывает приложения</div></header>
@@ -170,6 +192,7 @@ body.na #nav,body.na .fab{display:none!important}
 <script src="config.js"></script>
 <script>
 var IC={
+chat:'<path d="M5 6.5h14a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H11l-4 3.2V16.5H5A1.5 1.5 0 0 1 3.5 15V8A1.5 1.5 0 0 1 5 6.5z"/>',
 user:'<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.6-4 3.4-6 7.2-6s6.6 2 7.2 6"/>',
 gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.4M12 18.1v2.4M3.5 12h2.4M18.1 12h2.4M6 6l1.7 1.7M16.3 16.3L18 18M6 18l1.7-1.7M16.3 7.7L18 6"/>',
 image:'<rect x="4" y="5" width="16" height="14" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="M5 17l4.5-4.5 3.5 3.5 2-2 4 4"/>',
@@ -245,7 +268,7 @@ function av(id,s){var u=A[id]||{name:'?'},t=tone(u);return '<span class="av" sty
 function who(a,s){var u=A[a.author];return u?av(a.author,s||18)+'<span>'+esc(u.name)+'</span>'+badge(u.badge,s||16):''}
 function icon(a){return a.icon?'<img src="'+esc(a.icon)+'" alt="">':ico(kind(a))}
 function goIco(a){if(isSite(a))return ico('download');return ico(kind(a)=='bedrock'?'bedrock':'download')}
-function cardHTML(a,i){return '<div class="app glass" data-i="'+apps.indexOf(a)+'" style="animation-delay:'+Math.min(i,8)*45+'ms"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div><div class="au">'+who(a)+'</div><div class="meta">'+esc([a.version,a.size].concat((a.tags||[]).slice(0,2)).filter(Boolean).join(' · '))+'</div><div class="ds">'+esc(a.desc||'')+'</div></div><button class="go" aria-label="Скачать" data-i="'+apps.indexOf(a)+'">'+goIco(a)+'</button></div>'}
+function cardHTML(a,i){return '<div class="app glass" data-i="'+apps.indexOf(a)+'" style="animation-delay:'+Math.min(i,8)*45+'ms"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+(hasUpd(a)?' <span class="fact ichip">Обновление</span>':'')+'</div><div class="au">'+who(a)+'</div><div class="meta">'+esc([a.version,a.size].concat((a.tags||[]).slice(0,2)).filter(Boolean).join(' · '))+'</div><div class="ds">'+esc(a.desc||'')+'</div></div><button class="go" aria-label="Скачать" data-i="'+apps.indexOf(a)+'">'+goIco(a)+'</button></div>'}
 function emptyHTML(t,i){return '<div class="empty"><div class="ic">'+ico(i||'app')+'</div>'+t+'</div>'}
 
 function chips(){
@@ -269,7 +292,7 @@ function openProf(id){
   var u=A[id];if(!u)return;prof=id;closeSheet();
   var l=apps.filter(function(a){return a.author==id});
   var el=document.getElementById('v-prof');
-  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button><div class="ph"'+(u.accent?' style="background:'+hsl(+u.accent,55,isDark()?24:88)+';border-radius:28px;margin:8px 16px;padding:20px 8px"':'')+'>'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div>'+(ME.admin?'<div class="chips">'+[['','Без значка']].concat(Object.keys(BD).map(function(k){return[k,BD[k].n]})).map(function(c){return '<button class="chip'+((u.badge||'')==c[0]?' on':'')+'" data-bd="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>':'')+(u.role?'<div class="meta" style="text-align:center">'+RL[u.role]+'</div>':'')+(ME.admin&&u.role!='admin'?'<div class="chips">'+['user','dev'].map(function(r){return '<button class="chip'+(u.role==r?' on':'')+'" data-role="'+r+'">'+RL[r]+'</button>'}).join('')+'</div>':'')+'<h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
+  el.innerHTML='<button class="back" id="pb" aria-label="Назад">'+ico('back')+'</button>'+bn(u.banner)+'<div class="ph"'+(u.accent?' style="background:'+hsl(+u.accent,55,isDark()?24:88)+';border-radius:28px;margin:8px 16px;padding:20px 8px"':'')+'>'+av(id,96)+'<div class="nm">'+esc(u.name)+badge(u.badge,24)+'</div>'+(BD[u.badge]?'<div class="tag">'+badge(u.badge,16)+BD[u.badge].n+'</div>':'')+'<p>'+esc(u.bio||'')+'</p></div>'+(ME.admin?'<div class="chips">'+[['','Без значка']].concat(Object.keys(BD).map(function(k){return[k,BD[k].n]})).map(function(c){return '<button class="chip'+((u.badge||'')==c[0]?' on':'')+'" data-bd="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>':'')+(u.role?'<div class="meta" style="text-align:center">'+RL[u.role]+'</div>':'')+(ME.admin&&u.role!='admin'?'<div class="chips">'+['user','dev'].map(function(r){return '<button class="chip'+(u.role==r?' on':'')+'" data-role="'+r+'">'+RL[r]+'</button>'}).join('')+'</div>':'')+'<h2>'+plural(l.length,['приложение','приложения','приложений'])+'</h2><div class="list">'+(l.length?l.map(cardHTML).join(''):emptyHTML('Пока ничего'))+'</div>';
   el.classList.add('on');el.scrollTop=0;
 }
 function closeProf(){prof='';document.getElementById('v-prof').classList.remove('on')}
@@ -277,13 +300,13 @@ function closeProf(){prof='';document.getElementById('v-prof').classList.remove(
 /* карточка приложения */
 function openSheet(i){
   var a=apps[i],u=A[a.author],mc=kind(a)=='bedrock';
-  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+(a.tags||[]).map(function(t){return '<span class="fact">'+esc(t)+'</span>'}).join('')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(isSite(a)?'Перейти на сайт':mc?'Открыть в Minecraft':ext(fl(a))=='apk'||!ext(fl(a))?'Установить':'Скачать')+'</button>'+(canEdit(a)?'<button class="btn" style="margin-top:8px" data-ed="'+esc(a.id||a.name)+'">Изменить</button><button class="btn dng" data-rm="'+esc(a.id||a.name)+'">Убрать из магазина</button>':'');
+  document.getElementById('sheet').innerHTML='<div class="grab"></div>'+(a.banner?'<img class="bn sh-bn" src="'+esc(a.banner)+'" alt="">':'')+'<div class="sh-top"><div class="ic" style="background:var(--'+tone(a)+');color:var(--on-'+tone(a)+')">'+icon(a)+'</div><div class="info"><div class="nm">'+esc(a.name)+'</div>'+(u?'<button class="who" data-a="'+esc(a.author)+'">'+av(a.author,22)+esc(u.name)+badge(u.badge,18)+'</button>':'')+'</div></div><div class="facts"><span class="fact">'+TYPES[kind(a)]+'</span>'+(a.version?'<span class="fact">v'+esc(a.version)+'</span>':'')+(a.size?'<span class="fact">'+esc(a.size)+'</span>':'')+(a.tags||[]).map(function(t){return '<span class="fact">'+esc(t)+'</span>'}).join('')+'</div><div class="full">'+esc(a.desc||'')+'</div><button class="btn pri" data-i="'+i+'">'+goIco(a)+(isSite(a)?'Перейти на сайт':hasUpd(a)?'Обновить':mc?'Открыть в Minecraft':ext(fl(a))=='apk'||!ext(fl(a))?'Установить':'Скачать')+'</button>'+(canEdit(a)?'<button class="btn" style="margin-top:8px" data-ed="'+esc(a.id||a.name)+'">Изменить</button><button class="btn dng" data-rm="'+esc(a.id||a.name)+'">Убрать из магазина</button>':'');
   document.body.classList.add('sh');
 }
 function closeSheet(){document.body.classList.remove('sh')}
 function fetchFile(i,btn){
   var a=apps[i],f=a.file||a.apk;if(!f||!window.Store)return;
-  Store.get(f,a.id||a.name);
+  markVer(a);Store.get(f,a.id||a.name);
   if(btn&&btn.classList.contains('go')){btn.classList.add('busy');btn.innerHTML=ico('spin');setTimeout(function(){btn.classList.remove('busy');btn.innerHTML=goIco(a)},3000)}
 }
 
@@ -300,10 +323,10 @@ function drawSet(){
 }
 
 /* навигация */
-var NAV=[['home','Каталог','home'],['authors','Авторы','people'],['me','Профиль','user'],['set','Настройки','gear']];
+var NAV=[['home','Каталог','home'],['com','Сообщества','chat'],['authors','Авторы','people'],['me','Профиль','user'],['set','Настройки','gear']];
 function drawNav(){document.getElementById('nav').innerHTML=NAV.map(function(n){return '<button data-v="'+n[0]+'" class="'+(tab==n[0]?'on':'')+'"><span class="pill">'+ico(n[2])+'</span>'+n[1]+'</button>'}).join('')}
-function go(v){closeProf();closeSheet();tab=v;if(v=='me'){drawOwn();if(window.Store)Store.loadRequests()}NAV.forEach(function(n){document.getElementById('v-'+n[0]).classList.toggle('on',n[0]==v)});drawNav();fab()}
-function hsBack(){if(document.body.classList.contains('sh')){closeSheet();return true}if(prof){closeProf();return true}if(tab!='home'){go('home');return true}return false}
+function go(v){closeProf();closeSheet();closeCm();tab=v;if(v=='com')loadCm();if(v=='me'){drawOwn();if(window.Store)Store.loadRequests()}NAV.forEach(function(n){document.getElementById('v-'+n[0]).classList.toggle('on',n[0]==v)});drawNav();fab()}
+function hsBack(){if(document.body.classList.contains('sh')){closeSheet();return true}if(cm){closeCm();return true}if(prof){closeProf();return true}if(tab!='home'){go('home');return true}return false}
 
 /* загрузка каталога */
 function onCatalog(t,cached){
@@ -319,6 +342,7 @@ function load(){if(window.Store)Store.loadCatalog();else onCatalogError()}
 document.getElementById('q').oninput=home;
 document.addEventListener('click',function(e){
   var t=e.target,b;
+  if(extraClick(t))return;
   if(b=t.closest('[data-am]')){amode=b.dataset.am;return drawAuth()}
   if(t.closest('#auth-go'))return doAuth();
   if(b=t.closest('[data-pac]')){pac=b.dataset.pac;pacSet=true;return drawOwn()}
@@ -346,6 +370,101 @@ document.addEventListener('click',function(e){
   if(b=t.closest('.go,.btn[data-i]'))return fetchFile(+b.dataset.i,b);
   if(b=t.closest('.app,.fc'))return openSheet(+b.dataset.i);
 });
+/* запросы к базе и картинки */
+var RQ={},IMGCB={},rqn=0,iv={};
+try{iv=JSON.parse(localStorage.iv||'{}')}catch(e){}
+function rest(m,p,b,cb){var id='r'+(++rqn);RQ[id]=cb;Store.rest(id,m,p,b?JSON.stringify(b):'')}
+function onRest(id,ok,t){var f=RQ[id];delete RQ[id];if(f)f(ok,t)}
+function imgPick(tag,cb){IMGCB[tag]=cb;Store.pickImage(tag)}
+function onImgPicked(tag,name){if(IMGCB[tag])IMGCB[tag](name)}
+function imgUp(tag,cb){var id='r'+(++rqn);RQ[id]=cb;Store.uploadImage(tag,id)}
+function tm(s){try{return new Date(s).toLocaleString('ru',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return''}}
+function pw(p){p=p||{};return av(p.username,28)+'<span>'+esc((A[p.username]||p).name||p.username||'')+'</span>'+badge((A[p.username]||{}).badge,14)}
+function bn(u){return u?'<img class="bn" src="'+esc(u)+'" alt="">':''}
+
+/* обновления */
+function onUpdate(n,url){var el=document.getElementById('upd');if(!el)return;el.innerHTML='<div class="glass upd"><span>Доступна новая версия магазина</span><button class="btn pri" data-upd="'+esc(url)+'">Обновить</button></div>'}
+function markVer(a){if(a&&a.id){iv[a.id]=a.version||'';try{localStorage.iv=JSON.stringify(iv)}catch(e){}}}
+function hasUpd(a){return a.id&&iv[a.id]!==undefined&&iv[a.id]!==(a.version||'')}
+
+/* сообщества */
+var CM=[],cm=null,cmTab='posts',posts=[],msgs=[],chatTimer=0,cmErr='';
+function loadCm(){if(!window.Store||!OWN)return;rest('GET','communities?select=*,profiles(username,name)&order=created_at.desc','',function(ok,t){if(ok){try{CM=JSON.parse(t)}catch(e){CM=[]}}else cmErr=t;drawCm()})}
+function drawCm(){
+  var el=document.getElementById('cmlist');if(!el)return;
+  el.innerHTML=(ME.dev?'<button class="btn pri" id="cm-new" style="margin-bottom:12px">Создать сообщество</button>':'')+(CM.length?CM.map(function(c){var o=c.profiles||{};return '<div class="pc glass" data-cm="'+c.id+'"><div class="ic" style="background:var(--pc);color:var(--on-pc)">'+(c.banner_url?'<img src="'+esc(c.banner_url)+'" alt="">':esc((c.name||'?').charAt(0).toUpperCase()))+'</div><div class="info"><div class="nm">'+esc(c.name)+'</div><div class="meta">'+esc(c.description||'')+'</div><div class="meta">@'+esc(o.username||'')+(c.open?' · открытое, писать может любой':'')+'</div></div></div>'}).join(''):emptyHTML(cmErr||'Пока нет сообществ'))
+}
+function canPost(){return OWN&&cm&&(ME.admin||(cm.profiles||{}).username==ME.username||cm.open)}
+function canDelCm(){return OWN&&cm&&(ME.admin||(cm.profiles||{}).username==ME.username)}
+function openCm(id){
+  cm=CM.filter(function(c){return c.id==id})[0];if(!cm)return;cmTab='posts';drawCmPage();
+  document.getElementById('v-cm').classList.add('on');document.getElementById('v-cm').scrollTop=0;
+}
+function closeCm(){cm=null;clearInterval(chatTimer);document.getElementById('v-cm').classList.remove('on')}
+function drawCmPage(){
+  var o=cm.profiles||{},el=document.getElementById('v-cm');
+  el.innerHTML='<button class="back" id="cm-back" aria-label="Назад">'+ico('back')+'</button>'+bn(cm.banner_url)+'<div class="ph"><div class="nm">'+esc(cm.name)+'</div><p>'+esc(cm.description||'')+'</p><div class="meta">Владелец @'+esc(o.username||'')+'</div></div><div class="seg" style="margin-bottom:16px"><button data-ct="posts" class="'+(cmTab=='posts'?'on':'')+'">Посты</button><button data-ct="chat" class="'+(cmTab=='chat'?'on':'')+'">Чат</button></div><div id="cmbody"></div>'+(canDelCm()?'<button class="btn dng" id="cm-del" style="margin-top:24px">Удалить сообщество</button>':'');
+  clearInterval(chatTimer);
+  if(cmTab=='posts')loadPosts();else{drawChat();loadMsgs();chatTimer=setInterval(function(){if(cm&&cmTab=='chat')loadMsgs()},4000)}
+}
+function loadPosts(){rest('GET','posts?select=*,profiles(username,name)&community=eq.'+cm.id+'&order=created_at.desc&limit=50','',function(ok,t){if(ok){try{posts=JSON.parse(t)}catch(e){posts=[]}}drawPosts()})}
+function drawPosts(){
+  var el=document.getElementById('cmbody');if(!el||cmTab!='posts')return;
+  el.innerHTML=(canPost()?'<button class="btn pri" id="po-new" style="margin-bottom:12px">Написать пост</button>':'')+(posts.length?posts.map(function(p){var mine=OWN&&(ME.admin||(p.profiles||{}).username==ME.username||(cm.profiles||{}).username==ME.username);return '<div class="glass post"><div class="au">'+pw(p.profiles)+'<span class="meta">'+tm(p.created_at)+'</span></div><div class="full">'+esc(p.text)+'</div>'+(p.image_url?'<img class="pimg" src="'+esc(p.image_url)+'" alt="">':'')+'<div class="prow"><button class="chip" data-cmt="'+p.id+'">Комментарии</button>'+(mine?'<button class="chip" data-delp="'+p.id+'">Удалить</button>':'')+'</div></div>'}).join(''):emptyHTML('Пока нет постов'))
+}
+function openPostForm(){
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Новый пост</div>'+fld('Текст','<textarea id="po-t" rows="5"></textarea>')+'<button class="btn" id="po-img">'+ico('image')+'Добавить картинку</button><div class="meta" id="po-in" style="margin:8px 0 16px">Без картинки</div><div class="note" id="pmsg"></div><button class="btn pri" id="po-go">Опубликовать</button>';
+  document.body.classList.add('sh');window.poPicked=false;
+}
+function sendPost(){
+  var t=g('po-t');if(!t){msg('Напиши текст');return}
+  document.getElementById('po-go').disabled=true;msg('Публикую');
+  function ins(url){rest('POST','posts',{community:cm.id,text:t,image_url:url||''},function(ok,r){if(ok){closeSheet();loadPosts()}else{msg(r);document.getElementById('po-go').disabled=false}})}
+  if(window.poPicked)imgUp('post',function(ok,u){if(ok)ins(u);else{msg(u);document.getElementById('po-go').disabled=false}});else ins('');
+}
+function openComments(pid){
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Комментарии</div><div id="cos"></div>'+fld('Твой комментарий','<textarea id="co-t" rows="2"></textarea>')+'<button class="btn pri" id="co-go" data-p="'+pid+'">Отправить</button><div class="note" id="pmsg"></div>';
+  document.body.classList.add('sh');loadComments(pid);
+}
+function loadComments(pid){rest('GET','comments?select=*,profiles(username,name)&post=eq.'+pid+'&order=created_at.asc&limit=100','',function(ok,t){var el=document.getElementById('cos');if(!el||!ok)return;var l=[];try{l=JSON.parse(t)}catch(e){}el.innerHTML=l.length?l.map(function(c){var mine=OWN&&(ME.admin||(c.profiles||{}).username==ME.username);return '<div class="full" style="margin-bottom:12px"><div class="au">'+pw(c.profiles)+'<span class="meta">'+tm(c.created_at)+'</span>'+(mine?'<button class="chip" data-delc="'+c.id+'" data-p="'+pid+'">Удалить</button>':'')+'</div>'+esc(c.text)+'</div>'}).join(''):'<div class="note">Комментариев пока нет</div>'})}
+function drawChat(){
+  var el=document.getElementById('cmbody');if(!el)return;
+  el.innerHTML='<div id="msgs" class="msgs"></div><div style="padding:0 16px">'+fld('Сообщение','<textarea id="ms-t" rows="2"></textarea>')+'</div><button class="btn pri" id="ms-go">Отправить</button>'
+}
+function loadMsgs(){rest('GET','messages?select=*,profiles(username,name)&community=eq.'+cm.id+'&order=created_at.desc&limit=60','',function(ok,t){var el=document.getElementById('msgs');if(!el||!ok||cmTab!='chat')return;var l=[];try{l=JSON.parse(t)}catch(e){}l.reverse();var st=el.scrollHeight-el.scrollTop-el.clientHeight<60;el.innerHTML=l.length?l.map(function(m){var me=(m.profiles||{}).username==ME.username;return '<div class="msg'+(me?' me':'')+'"><div class="meta">'+esc((A[(m.profiles||{}).username]||m.profiles||{}).name||'')+' · '+tm(m.created_at)+((ME.admin||me)?' <a data-delm="'+m.id+'">удалить</a>':'')+'</div>'+esc(m.text)+'</div>'}).join(''):'<div class="note">Пока тихо. Напиши первым.</div>';if(st)el.scrollTop=el.scrollHeight})}
+function openCmForm(){
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Новое сообщество</div>'+fld('Название','<input id="cm-n">')+fld('Описание','<textarea id="cm-d" rows="3"></textarea>')+'<label class="fl" style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="cm-o" style="width:20px;height:20px"><span>Открытое: посты может писать любой, как на форуме</span></label><button class="btn" id="cm-bn">'+ico('image')+'Баннер сообщества</button><div class="meta" id="cm-bi" style="margin:8px 0 16px">Без баннера</div><div class="note" id="pmsg"></div><button class="btn pri" id="cm-go">Создать</button>';
+  document.body.classList.add('sh');window.cmPicked=false;
+}
+function makeCm(){
+  var n=g('cm-n');if(!n){msg('Введи название');return}
+  document.getElementById('cm-go').disabled=true;msg('Создаю');
+  function ins(url){rest('POST','communities',{id:(crypto.randomUUID?crypto.randomUUID():undefined),name:n,description:g('cm-d'),open:document.getElementById('cm-o').checked,banner_url:url||''},function(ok,r){if(ok){closeSheet();loadCm()}else{msg(r);document.getElementById('cm-go').disabled=false}})}
+  if(window.cmPicked)imgUp('cbanner',function(ok,u){if(ok)ins(u);else{msg(u);document.getElementById('cm-go').disabled=false}});else ins('');
+}
+function extraClick(t){
+  var b;
+  if(b=t.closest('[data-upd]')){Store.get(b.dataset.upd,'HangarVault');return true}
+  if(b=t.closest('[data-cm]')){openCm(b.dataset.cm);return true}
+  if(t.closest('#cm-back')){closeCm();return true}
+  if(t.closest('#cm-new')){openCmForm();return true}
+  if(t.closest('#cm-bn')){imgPick('cbanner',function(n){window.cmPicked=true;document.getElementById('cm-bi').textContent=n});return true}
+  if(t.closest('#cm-go')){makeCm();return true}
+  if(b=t.closest('#cm-del')){if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Нажми ещё раз, чтобы удалить';return true}rest('DELETE','communities?id=eq.'+cm.id,'',function(ok){if(ok){closeCm();loadCm()}});return true}
+  if(b=t.closest('[data-ct]')){cmTab=b.dataset.ct;drawCmPage();return true}
+  if(t.closest('#po-new')){openPostForm();return true}
+  if(t.closest('#po-img')){imgPick('post',function(n){window.poPicked=true;document.getElementById('po-in').textContent=n});return true}
+  if(t.closest('#po-go')){sendPost();return true}
+  if(b=t.closest('[data-cmt]')){openComments(b.dataset.cmt);return true}
+  if(b=t.closest('[data-delp]')){if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Точно?';return true}rest('DELETE','posts?id=eq.'+b.dataset.delp,'',function(){loadPosts()});return true}
+  if(b=t.closest('#co-go')){var x=g('co-t');if(!x)return true;b.disabled=true;rest('POST','comments',{post:b.dataset.p,text:x},function(ok,r){b.disabled=false;if(ok){document.getElementById('co-t').value='';loadComments(b.dataset.p)}else msg(r)});return true}
+  if(b=t.closest('[data-delc]')){rest('DELETE','comments?id=eq.'+b.dataset.delc,'',function(){loadComments(b.dataset.p)});return true}
+  if(b=t.closest('#ms-go')){var m=g('ms-t');if(!m)return true;b.disabled=true;rest('POST','messages',{community:cm.id,text:m},function(ok,r){b.disabled=false;if(ok){document.getElementById('ms-t').value='';loadMsgs()}});return true}
+  if(b=t.closest('[data-delm]')){rest('DELETE','messages?id=eq.'+b.dataset.delm,'',function(){loadMsgs()});return true}
+  if(t.closest('#pick-bn')){imgPick('ibanner',function(n){pickedBn=true;document.getElementById('pbn').textContent=n});return true}
+  return false;
+}
+
 /* аккаунты, профили и загрузка файлов с телефона */
 var pac='',ME={in:false},OWN=false,picked=false,editId='',amode='in';
 function ownerInfo(){try{ME=JSON.parse(Store.me())}catch(e){ME={in:false}}OWN=!!ME.in;document.body.classList.toggle('na',!OWN);if(OWN)document.getElementById('v-auth').classList.remove('on')}
@@ -368,7 +487,7 @@ function drawOwn(){
   var el=document.getElementById('s-own');if(!el)return;
   if(!OWN){el.innerHTML='';return}
   var u=A[ME.username]||{name:ME.name||ME.username,bio:ME.bio||'',avatar:ME.avatar,badge:''};if(u.accent==null)u.accent=ME.accent||'';u.accent=pac=(pacSet?pac:u.accent);
-  el.innerHTML='<div class="pc glass" style="cursor:default">'+av(ME.username,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">@'+esc(ME.username)+' · '+(ME.admin?'админ':ME.dev?'разработчик':'пользователь')+'</div></div></div><div style="padding:8px 16px 0">'+fld('Имя','<input id="p-n" value="'+esc(u.name)+'">')+fld('О себе','<textarea id="p-b" rows="2">'+esc(u.bio||'')+'</textarea>')+'<div class="meta" style="margin:8px 0">Цвет профиля</div><div class="sw" id="p-ac">'+['','262','215','185','145','95','35','350'].map(function(h){return '<button data-pac="'+h+'" class="'+((u.accent||'')==h?'on':'')+'" style="background:'+(h?hsl(+h,55,isDark()?65:45):'var(--surface-var,#888)')+'">'+((u.accent||'')==h?ico('check'):'')+'</button>'}).join('')+'</div></div><button class="btn" data-own="photo" style="margin-bottom:8px">Сменить фото</button><button class="btn" data-own="page" style="margin-bottom:8px">Моя страница</button><button class="btn pri" data-own="save">Сохранить профиль</button><button class="btn" style="margin-top:8px" data-own="out">Выйти</button>'+'<div id="req"></div>'+'<div class="note" id="own-msg"></div>';
+  el.innerHTML='<div class="pc glass" style="cursor:default">'+av(ME.username,56)+'<div class="info"><div class="nm">'+esc(u.name)+badge(u.badge,18)+'</div><div class="meta">@'+esc(ME.username)+' · '+(ME.admin?'админ':ME.dev?'разработчик':'пользователь')+'</div></div></div><div style="padding:8px 16px 0">'+fld('Имя','<input id="p-n" value="'+esc(u.name)+'">')+fld('О себе','<textarea id="p-b" rows="2">'+esc(u.bio||'')+'</textarea>')+'<div class="meta" style="margin:8px 0">Цвет профиля</div><div class="sw" id="p-ac">'+['','262','215','185','145','95','35','350'].map(function(h){return '<button data-pac="'+h+'" class="'+((u.accent||'')==h?'on':'')+'" style="background:'+(h?hsl(+h,55,isDark()?65:45):'var(--surface-var,#888)')+'">'+((u.accent||'')==h?ico('check'):'')+'</button>'}).join('')+'</div></div><button class="btn" data-own="photo" style="margin-bottom:8px">Сменить фото</button><button class="btn" data-own="banner" style="margin-bottom:8px">Баннер профиля</button><button class="btn" data-own="page" style="margin-bottom:8px">Моя страница</button><button class="btn pri" data-own="save">Сохранить профиль</button><button class="btn" style="margin-top:8px" data-own="out">Выйти</button>'+'<div id="req"></div>'+'<div class="note" id="own-msg"></div>';
 }
 var pacSet=false,reqs=[],myReq=false;
 function drawReq(){
@@ -383,24 +502,25 @@ function ownAct(a){
   if(a=='out'){Store.logout();A={};apps=[];ownerInfo();onNeedLogin();return}
   if(a=='photo'){Store.pickAvatar();return}
   if(a=='page'){openProf(ME.username);return}
+  if(a=='banner'){imgPick('pbanner',function(){document.getElementById('own-msg').textContent='Загружаю баннер';imgUp('pbanner',function(ok,u){if(ok)Store.saveProfile(JSON.stringify({name:g('p-n'),bio:g('p-b'),accent:pac,banner:u}));else document.getElementById('own-msg').textContent=u})});return}
   if(a=='req'){var t=g('req-t');if(t.length<10){document.getElementById('req-msg').textContent='Напиши хотя бы пару предложений';return}document.getElementById('req-msg').textContent='Отправляю';Store.sendRequest(t);return}
   document.getElementById('own-msg').textContent='Сохраняю';Store.saveProfile(JSON.stringify({name:g('p-n'),bio:g('p-b'),accent:pac}));
 }
 function onSaved(ok,t){pacSet=false;ownerInfo();if(ok)setTimeout(drawOwn,0);var m=document.getElementById('own-msg');if(m)m.textContent=ok?'Сохранено':t;if(ok){load();if(prof)openProf(prof)}}
 function openUpload(id){
-  picked=false;pickedIc=false;editId=id||'';
+  picked=false;pickedIc=false;pickedBn=false;editId=id||'';
   var a=editId?apps.filter(function(x){return(x.id||x.name)==editId})[0]:null;a=a||{};
   var ty=[['','Определить сам']].concat(Object.keys(TYPES).map(function(k){return[k,TYPES[k]]})).map(function(t){return '<option value="'+t[0]+'"'+(a.type==t[0]?' selected':'')+'>'+t[1]+'</option>'}).join('');
-  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">'+(editId?'Изменить запись':'Новая запись')+'</div><button class="btn" id="pick">'+ico('file')+(editId?'Заменить файл':'Выбрать файл')+'</button><div class="meta" id="pf" style="margin:8px 0 16px">'+(editId?'Файл можно не менять':'Файл не выбран (до 50 МБ)')+'</div>'+fld('Или ссылка (для больших файлов и чужих игр)','<input id="u-l" placeholder="https://" autocapitalize="none" value="'+esc(isSite(a)?fl(a):'')+'">')+'<label class="fl" style="flex-direction:row;gap:10px;align-items:center"><input type="checkbox" id="u-s"'+(isSite(a)?' checked':'')+' style="width:20px;height:20px"><span>Ссылка ведёт на сайт, а не на файл. Игрока перекинет на этот сайт.</span></label>'+'<button class="btn" id="pick-ic">'+ico('image')+'Значок приложения</button><div class="meta" id="pic" style="margin:8px 0 16px">'+(a.icon?'Значок уже есть, можно заменить':'Без значка (по желанию, картинка)')+'</div>'+fld('Название','<input id="u-n" value="'+esc(a.name||'')+'">')+fld('Версия','<input id="u-v" placeholder="1.0" value="'+esc(a.version||'')+'">')+fld('Описание','<textarea id="u-d" rows="3">'+esc(a.desc||'')+'</textarea>')+fld('Теги через запятую','<input id="u-g" placeholder="1.21, Fabric" value="'+esc((a.tags||[]).join(', '))+'">')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+(editId?'Сохранить':'Опубликовать')+'</button>';
+  document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">'+(editId?'Изменить запись':'Новая запись')+'</div><button class="btn" id="pick">'+ico('file')+(editId?'Заменить файл':'Выбрать файл')+'</button><div class="meta" id="pf" style="margin:8px 0 16px">'+(editId?'Файл можно не менять':'Файл не выбран (до 50 МБ)')+'</div>'+fld('Или ссылка (для больших файлов и чужих игр)','<input id="u-l" placeholder="https://" autocapitalize="none" value="'+esc(isSite(a)?fl(a):'')+'">')+'<label class="fl" style="flex-direction:row;gap:10px;align-items:center"><input type="checkbox" id="u-s"'+(isSite(a)?' checked':'')+' style="width:20px;height:20px"><span>Ссылка ведёт на сайт, а не на файл. Игрока перекинет на этот сайт.</span></label>'+'<button class="btn" id="pick-bn">'+ico('image')+'Баннер записи</button><div class="meta" id="pbn" style="margin:8px 0 16px">'+(a.banner?'Баннер уже есть, можно заменить':'Без баннера')+'</div><button class="btn" id="pick-ic">'+ico('image')+'Значок приложения</button><div class="meta" id="pic" style="margin:8px 0 16px">'+(a.icon?'Значок уже есть, можно заменить':'Без значка (по желанию, картинка)')+'</div>'+fld('Название','<input id="u-n" value="'+esc(a.name||'')+'">')+fld('Версия','<input id="u-v" placeholder="1.0" value="'+esc(a.version||'')+'">')+fld('Описание','<textarea id="u-d" rows="3">'+esc(a.desc||'')+'</textarea>')+fld('Теги через запятую','<input id="u-g" placeholder="1.21, Fabric" value="'+esc((a.tags||[]).join(', '))+'">')+fld('Тип','<select id="u-t">'+ty+'</select>')+'<div class="pg"><i id="pgi"></i></div><div class="note" id="pmsg"></div><button class="btn pri" id="pub">'+ico('download')+(editId?'Сохранить':'Опубликовать')+'</button>';
   document.body.classList.add('sh');
 }
-var pickedIc=false;
+var pickedIc=false,pickedBn=false;
 function onIconPicked(n){pickedIc=true;document.getElementById('pic').textContent=n}
 function onPicked(name,size){picked=true;document.getElementById('pf').textContent=name+' · '+fmt(size);var n=document.getElementById('u-n');if(n&&!n.value)n.value=name.replace(/\.[^.]*$/,'')}
 function publish(){
   var n=g('u-n'),l=g('u-l');if(!editId&&!picked&&!l){msg('Выбери файл или вставь ссылку');return}if(!n){msg('Введи название');return}
-  var o={name:n,version:g('u-v'),desc:g('u-d'),tags:g('u-g'),type:g('u-t'),newFile:picked&&!l,link:l,site:!!(document.getElementById('u-s')||{}).checked,newIcon:pickedIc};
-  if(editId){var a=apps.filter(function(x){return(x.id||x.name)==editId})[0]||{};o.id=editId;o.file=a.file||'';o.size=a.size||'';o.icon=a.icon||''}
+  var o={name:n,version:g('u-v'),desc:g('u-d'),tags:g('u-g'),type:g('u-t'),newFile:picked&&!l,link:l,site:!!(document.getElementById('u-s')||{}).checked,newIcon:pickedIc,newBanner:pickedBn};
+  if(editId){var a=apps.filter(function(x){return(x.id||x.name)==editId})[0]||{};o.id=editId;o.file=a.file||'';o.size=a.size||'';o.icon=a.icon||'';o.banner=a.banner||''}
   document.getElementById('pub').disabled=true;msg('Начинаю');
   Store.upload(JSON.stringify(o));
 }
@@ -414,7 +534,7 @@ function openHelp(){
   document.getElementById('sheet').innerHTML='<div class="grab"></div><div class="nm" style="font-size:22px;margin-bottom:16px">Как пользоваться</div>'+st.map(function(x,i){return '<div class="full" style="margin-bottom:14px"><b>'+(i+1)+'. '+x[0]+'</b><br>'+x[1]+'</div>'}).join('')+'<button class="btn pri" id="help-ok">Понятно</button>';
   document.body.classList.add('sh');
 }
-function initApp(){try{Store.init(SUPA_URL,SUPA_KEY)}catch(e){}ownerInfo();apply();drawNav();fab();if(OWN)load();else onNeedLogin()}
+function initApp(){try{Store.init(SUPA_URL,SUPA_KEY);Store.checkUpdate()}catch(e){}ownerInfo();apply();drawNav();fab();if(OWN)load();else onNeedLogin()}
 document.getElementById('list').innerHTML='<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
 initApp();
 </script></body></html>
