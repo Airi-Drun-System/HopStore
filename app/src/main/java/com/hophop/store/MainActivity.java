@@ -145,7 +145,34 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("hsBack()", v -> { if (!"true".equals(v)) finish(); });
     }
 
-    private String lastUrl;
+    private String lastUrl, dlKey;
+    private volatile boolean dlBusy;
+
+    /** Раз в 0,4 с шлёт странице процент загрузки; в конце состояние done/fail/cancel. */
+    private void watchDownload(final long id, final String key) {
+        new Thread(() -> {
+            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            String end = "cancel";
+            try {
+                while (true) {
+                    int st = -1, pct = -1;
+                    try (Cursor q = dm.query(new DownloadManager.Query().setFilterById(id))) {
+                        if (q == null || !q.moveToFirst()) break;
+                        st = q.getInt(q.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+                        long got = q.getLong(q.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                        long all = q.getLong(q.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                        if (all > 0) pct = (int) (got * 100 / all);
+                    }
+                    if (st == DownloadManager.STATUS_SUCCESSFUL) { end = "done"; break; }
+                    if (st == DownloadManager.STATUS_FAILED) { end = "fail"; break; }
+                    toJs("onDl(" + JSONObject.quote(key) + "," + pct + ",'" + (st == DownloadManager.STATUS_RUNNING ? "run" : "wait") + "')");
+                    Thread.sleep(400);
+                }
+            } catch (Exception ignored) { }
+            dlBusy = false;
+            toJs("onDl(" + JSONObject.quote(key) + ",100,'" + end + "')");
+        }).start();
+    }
 
     private final BroadcastReceiver done = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
@@ -731,6 +758,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void get(String rawUrl, final String name) {
             final String url = rawUrl == null ? null : rawUrl.trim();
+            if (url != null && !url.startsWith("site:") && dlBusy) { toast("Уже скачивается, подожди"); return; }
             lastUrl = url;
             if (url != null && url.startsWith("site:https://")) {
                 runOnUiThread(() -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url.substring(5)))));
@@ -757,7 +785,15 @@ public class MainActivity extends Activity {
                     r.setDestinationInExternalFilesDir(MainActivity.this, Environment.DIRECTORY_DOWNLOADS, safe);
                 }
                 downloadId = ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(r);
+                dlBusy = true; dlKey = name;
+                toJs("onDl(" + JSONObject.quote(name) + ",0,'run')");
+                watchDownload(downloadId, name);
             });
+        }
+
+        @JavascriptInterface
+        public void cancel() {
+            runOnUiThread(() -> ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).remove(downloadId));
         }
 
         private void toast(String t) { runOnUiThread(() -> Toast.makeText(MainActivity.this, t, Toast.LENGTH_SHORT).show()); }
