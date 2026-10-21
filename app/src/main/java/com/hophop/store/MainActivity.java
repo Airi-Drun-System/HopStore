@@ -175,7 +175,7 @@ public class MainActivity extends Activity {
         try {
             startActivity(viewIntent("application/octet-stream").setPackage(MC_PKG));
         } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, "Minecraft не найден. Файл сохранён: " + dlFile.getName(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Minecraft Bedrock не установлен. Файл в Загрузках: " + dlFile.getName(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -203,6 +203,7 @@ public class MainActivity extends Activity {
         if (rq == PICK) {
             pickedUri = u; pickedMime = mime; pickedName = name; pickedSize = size;
             toJs("onPicked(" + JSONObject.quote(name) + "," + Math.max(size, 0) + ")");
+            if (name.toLowerCase(Locale.ROOT).endsWith(".apk") && size > 0 && size <= MAX_UPLOAD) readApk(u);
             return;
         }
         if (rq == IMG) {
@@ -297,6 +298,33 @@ public class MainActivity extends Activity {
         return Math.max(1, b / 1024) + " КБ";
     }
 
+    /** Достаёт из apk название, версию и значок: форма заполняется сама. */
+    private void readApk(final Uri u) {
+        new Thread(() -> {
+            try {
+                File f = new File(getCacheDir(), "pick.apk");
+                try (InputStream in = getContentResolver().openInputStream(u); OutputStream out = new FileOutputStream(f)) {
+                    byte[] buf = new byte[65536]; int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                }
+                android.content.pm.PackageManager pm = getPackageManager();
+                android.content.pm.PackageInfo pi = pm.getPackageArchiveInfo(f.getAbsolutePath(), 0);
+                if (pi == null || pi.applicationInfo == null) return;
+                android.content.pm.ApplicationInfo ai = pi.applicationInfo;
+                ai.sourceDir = f.getAbsolutePath(); ai.publicSourceDir = f.getAbsolutePath();
+                String label = String.valueOf(ai.loadLabel(pm));
+                android.graphics.drawable.Drawable d = ai.loadIcon(pm);
+                android.graphics.Bitmap bm = android.graphics.Bitmap.createBitmap(256, 256, android.graphics.Bitmap.Config.ARGB_8888);
+                android.graphics.Canvas cv = new android.graphics.Canvas(bm);
+                d.setBounds(0, 0, 256, 256); d.draw(cv);
+                File ic = new File(getCacheDir(), "icon-auto.png");
+                try (OutputStream out = new FileOutputStream(ic)) { bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); }
+                iconUri = Uri.fromFile(ic); iconMime = "image/png"; iconName = "icon.png"; iconSize = ic.length();
+                toJs("onApkMeta(" + new JSONObject().put("label", label).put("version", pi.versionName == null ? "" : pi.versionName).toString() + ")");
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
     /** Заливает выбранный файл в хранилище и возвращает публичную ссылку. */
     private String putFile(Uri uri, String mime, String name, long size, String kind) throws Exception {
         if (size > MAX_UPLOAD) throw new Exception("Файл больше 50 МБ. Вставь ссылку вместо файла");
@@ -370,6 +398,13 @@ public class MainActivity extends Activity {
                 .put("p_type", f.optString("type")).put("p_file", url).put("p_size", size).put("p_icon", icon).put("p_banner", banner).toString());
             if (oldUrl != null && !oldUrl.equals(url)) dropFile(oldUrl);
         }
+    }
+
+    private static String meta(String html, String prop) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("<meta[^>]+(?:property|name)=[\"']" + prop + "[\"'][^>]*content=[\"']([^\"']*)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(html);
+        if (m.find()) return m.group(1).trim();
+        m = java.util.regex.Pattern.compile("<meta[^>]+content=[\"']([^\"']*)[\"'][^>]*(?:property|name)=[\"']" + prop + "[\"']", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(html);
+        return m.find() ? m.group(1).trim() : "";
     }
 
     private static String readAll(InputStream in) throws Exception {
@@ -596,6 +631,38 @@ public class MainActivity extends Activity {
                     if (remote > mine && as.length() > 0)
                         toJs("onUpdate(" + remote + "," + JSONObject.quote(as.getJSONObject(0).getString("browser_download_url")) + ")");
                 } catch (Exception ignored) { }
+            }).start();
+        }
+
+        /** Название и картинка со страницы сайта (og:image или значок). Ответ в onMeta(json). */
+        @JavascriptInterface
+        public void fetchMeta(final String url) {
+            new Thread(() -> {
+                JSONObject o = new JSONObject();
+                try {
+                    if (!url.startsWith("https://")) return;
+                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setConnectTimeout(8000); c.setReadTimeout(10000);
+                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) HangarVault");
+                    ByteArrayOutputStream b = new ByteArrayOutputStream();
+                    try (InputStream in = c.getInputStream()) {
+                        byte[] buf = new byte[8192]; int n;
+                        while ((n = in.read(buf)) > 0 && b.size() < 300000) b.write(buf, 0, n);
+                    }
+                    String h = b.toString("UTF-8");
+                    String img = meta(h, "og:image"), title = meta(h, "og:title");
+                    if (img.isEmpty()) {
+                        java.util.regex.Matcher m = java.util.regex.Pattern.compile("<link[^>]+rel=[\"'](?:shortcut )?icon[\"'][^>]*href=[\"']([^\"']+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(h);
+                        if (m.find()) img = m.group(1);
+                    }
+                    if (title.isEmpty()) {
+                        java.util.regex.Matcher m = java.util.regex.Pattern.compile("<title[^>]*>([^<]+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(h);
+                        if (m.find()) title = m.group(1).trim();
+                    }
+                    if (!img.isEmpty()) o.put("image", new URL(new URL(url), img).toString());
+                    o.put("title", title);
+                } catch (Exception ignored) { }
+                toJs("onMeta(" + o.toString() + ")");
             }).start();
         }
 
