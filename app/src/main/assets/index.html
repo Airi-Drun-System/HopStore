@@ -436,7 +436,7 @@ function go(v){closeProf();closeSheet();closeCm();tab=v;if(v=='com')loadCm();if(
 function hsBack(){if(document.body.classList.contains('sh')){closeSheet();return true}if(cm){closeCm();return true}if(prof){tab=='me'?go('home'):closeProf();return true}if(tab!='home'){go('home');return true}return false}
 
 /* загрузка каталога */
-function onCatalog(t,cached){
+function onCatalog(t,cached){ownerInfo();fab();
   var j;try{j=JSON.parse(t)}catch(e){onCatalogError();return}
   apps=j.apps||[];A=j.authors||{};
   document.getElementById('cnt').textContent=plural(apps.length,['приложение','приложения','приложений']);
