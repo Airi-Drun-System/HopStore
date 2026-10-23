@@ -611,6 +611,8 @@ public class MainActivity extends Activity {
                     for (int i = 0; i < pr.length(); i++) {
                         JSONObject p = pr.getJSONObject(i);
                         ids.put(p.getString("id"), p.getString("username"));
+                        // роль могли поменять после входа: обновляем свою, чтобы кнопка «Добавить» не пропадала
+                        if (p.getString("id").equals(uid())) prefs().edit().putString("role", p.optString("role")).apply();
                         authors.put(p.getString("username"), new JSONObject().put("name", p.optString("name"))
                             .put("bio", p.optString("bio")).put("avatar", p.optString("avatar_url")).put("badge", p.optString("badge")).put("accent", p.optString("accent")).put("role", p.optString("role")).put("banner", p.optString("banner_url")));
                     }
